@@ -337,8 +337,7 @@
 
     // ======================= Core state =======================
     const game = { started:false, company:null, year:1, capital:100, lastPL:null, strategy:null, scenario:null, alive:true, history:[],
-      lastLR:null, lastRBC:null, lastCR:null, cycleAdj:0, levers:{ commission:'std', uw:'market', reins:'std', invrisk:'med' } }; 
-    const settings = { difficulty:'fair' }; 
+      lastLR:null, lastRBC:null, lastCR:null, levers:{ commission:'std', uw:'market', reins:'std', invrisk:'med' } };
 
     const dom = {
       modePill: document.getElementById('mode-pill'), modeLabel: document.getElementById('mode-label'),
@@ -454,12 +453,7 @@
       setYearbarActive(); refreshStats(); presetLevers();
     }
     function chooseStrategy(s){ if(s==='random') s = Math.random()<.5? 'conservative':'aggressive'; game.strategy=s; presetLevers(); refreshStats(); }
-    function nextStep(){
-      if(!game.company){alert('Pick a company first.'); return}
-      if(!game.started){ game.scenario = sample(nonLifeScenarios); game.started=true; }
-      if(!game.strategy){ alert('Choose strategy.'); return }
-      simulateYear();
-    } if(!game.started){ game.scenario = (game.company==='life'? sample(lifeScenarios): sample(nonLifeScenarios)); game.started=true; } if(!game.strategy){ alert('Choose strategy.'); return } simulateYear(); }
+    function nextStep(){ if(!game.company){alert('Pick a company first.'); return} if(!game.started){ game.scenario = (game.company==='life'? sample(lifeScenarios): sample(nonLifeScenarios)); game.started=true; } if(!game.strategy){ alert('Choose strategy.'); return } simulateYear(); }
     function resetGame(){ location.reload(); }
     function afterLetter(){ closeModal(); if(!game.alive || game.year>4){ showEndSummary(); return } dom.yearLabel.textContent = `Year ${game.year}`; game.strategy=null; refreshStats(); scrollTo({top:0,behavior:'smooth'}); }
 
@@ -469,14 +463,9 @@
       const L = i18n[lang];
       dom.ribbon.textContent = plan.yearType==='catastrophe'? L.ribbon_cat : (plan.yearType==='crisis'? L.ribbon_crisis : L.ribbon_normal);
       dom.ribbon.className = 'ribbon ' + (plan.yearType==='catastrophe'? 'cat' : (plan.yearType==='crisis'? 'crisis' : 'ok'));
-      dom.ltitle.textContent = `${L.companyLabel(game.company||'nonlife')} — Year ${plan.year}`;
+      dom.ltitle.textContent = `${L.companyLabel(game.company)} — Year ${plan.year}`;
       dom.lmeta.textContent = L.letterMeta(game.scenario.name, L.stratLabel(plan.strategy), plan.metaNotes);
-      dom.lbody.innerHTML = plan.narrative.map(p=>{p=p+''; return p.trim().startsWith('<')? p : `<p>${p}</p>`}).join('');
-      openModal();
-      game.year += 1; setYearbarActive(); refreshStats();
-    } — Year ${plan.year}`;
-      dom.lmeta.textContent = L.letterMeta(game.scenario.name, L.stratLabel(plan.strategy), plan.metaNotes);
-      dom.lbody.innerHTML = plan.narrative.map(p=>{p=p+''; return p.trim().startsWith('<')? p : `<p>${p}</p>`}).join('');
+      dom.lbody.innerHTML = plan.narrative.map(p=>`<p>${p}</p>`).join('');
       openModal();
       game.year += 1; setYearbarActive(); refreshStats();
     }
@@ -565,99 +554,50 @@
 
     function nonLifeYearModel(){
       const yIdx = game.year-1; if(yIdx>3){ return endStub(); }
-      const y = game.scenario.years[yIdx]; const s = game.strategy;
+      const y = game.scenario.years[yIdx]; const s = game.strategy; const L = i18n[lang];
       const lev = leverEffects();
-      // Difficulty multipliers (fair by default)
-      const d = (settings.difficulty==='easy')? {cat:0.7, infl:0.0, investVol:0.8}
-                : (settings.difficulty==='hard')? {cat:1.2, infl:0.03, investVol:1.2}
-                : {cat:1.0, infl:0.0, investVol:1.0};
-
-      // Exposure & pricing with market cycle adjustment
-      let exposure = (s==='aggressive'? 1.12 : 1.00) * lev.commExpo * lev.uwExpo;
-      let priceMargin = (s==='conservative'? 0.15 : 0.11) + lev.uwMarginAdj + (game.cycleAdj||0);
-      priceMargin = Math.max(0.07, Math.min(0.24, priceMargin));
+      let exposure = (s==='aggressive'? 1.22 : 0.9) * lev.commExpo * lev.uwExpo;
+      let priceMargin = (s==='aggressive'? 0.18 : 0.11) + lev.uwMarginAdj; priceMargin = Math.max(0.07, Math.min(0.24, priceMargin));
       const retention = lev.reinsRetention;
 
-      // Premiums
-      const basePremium = 28; const premium = basePremium * exposure;
+      const basePremium = 26; const premium = basePremium * exposure;
+      let nonCatClaimsBase = 14 * exposure; const envLoss = { low:0.85, avg:1.0, slightlyHigh:1.2, cat:3.5 }[y.loss] || 1.0; nonCatClaimsBase *= envLoss * lev.uwLossMul;
+      let catLoss = 0; if(y.type==='catastrophe'){ catLoss = 60 * exposure * retention; }
+      const inflMul = { avg:1.0, high:1.18 }[y.infl] || 1.0; nonCatClaimsBase *= inflMul;
+      let invBase = { high:0.05, avg:0.03, low:-0.06 }[y.invest] ?? 0.03; invBase *= lev.invScale; const invest = game.capital * invBase; if(y.type==='crisis'){ nonCatClaimsBase *= 1.08 }
 
-      // Non‑cat claims (expected vs realized)
-      const expectedNonCat = 12.5 * exposure; // expectation baked into pricing
-      let envLossMul = { low:0.90, avg:1.00, slightlyHigh:1.20, cat:3.5 }[y.loss] || 1.00;
-      let inflMul = ({ avg:1.00, high:1.18 }[y.infl] || 1.00) * (1 + d.infl);
-      let nonCatClaimsBase = expectedNonCat * envLossMul * lev.uwLossMul * inflMul;
-      if(y.type==='crisis'){ nonCatClaimsBase *= 1.08 }
+      const adminExpense = 5.0 * exposure; const reinsCost = (lev.reinsCost); const commCost = Math.max(0, lev.commCostPerExpo * exposure);
+      const expense = adminExpense + reinsCost + commCost;
 
-      // Catastrophe severity (net of reinsurance)
-      let catLoss = 0; if(y.type==='catastrophe'){ catLoss = 45 * exposure * retention * d.cat; }
-
-      // Expense delta (only deviation vs expected is charged; expected already in margin)
-      const adminExpense = 4.2 * exposure; const reinsCost = lev.reinsCost; const commCost = Math.max(0, lev.commCostPerExpo * exposure);
-      const expectedExpense = 4.2 * exposure + 1.4; // std reins & commission baseline
-      const deltaExpense = (adminExpense + reinsCost + commCost) - expectedExpense;
-
-      // Investment income
-      let invBase = { high:0.05, avg:0.03, low:-0.04 }[y.invest] ?? 0.03; invBase *= lev.invScale * d.investVol; const invest = game.capital * invBase;
-
-      // Profit: margin minus deviations + investment
-      let pl = (premium * priceMargin) - (nonCatClaimsBase - expectedNonCat) - catLoss - deltaExpense + invest; pl = Number(pl.toFixed(1));
+      let pl = (premium * priceMargin) - (nonCatClaimsBase - 10) - catLoss - expense + invest; pl = Number(pl.toFixed(1));
       const totalClaims = Number((nonCatClaimsBase + catLoss).toFixed(1));
 
-      // Ratios
+      // Metrics
       const lossRatio = Math.max(0, Math.min(3, totalClaims / Math.max(1, premium)));
-      const expenseActual = adminExpense + reinsCost + commCost; const expenseRatio = Math.max(0, Math.min(2, expenseActual / Math.max(1, premium)));
+      const expenseRatio = Math.max(0, Math.min(2, expense / Math.max(1, premium)));
       const combinedRatio = Math.max(0, Math.min(3, lossRatio + expenseRatio));
+      const req = 40 + 0.3*premium + (y.type==='catastrophe'? 35:0) + (envLoss>1? 5:0);
 
-      // Capital & RBC
-      const req = 35 + 0.25*premium + (y.type==='catastrophe'? 30:0) + (envLossMul>1? 10:0);
       game.capital = Number((game.capital + pl).toFixed(1)); game.lastPL = pl; const rbc = game.capital / Math.max(1, req);
       game.lastLR = lossRatio; game.lastRBC = rbc; game.lastCR = combinedRatio;
-
-      // Market cycle feedback for next year
-      if(combinedRatio>1.05){ game.cycleAdj = Math.min(0.05, (game.cycleAdj||0) + 0.02); }
-      else if(combinedRatio<0.95){ game.cycleAdj = Math.max(-0.03, (game.cycleAdj||0) - 0.01); }
-      if(y.type==='catastrophe'){ game.cycleAdj = Math.min(0.05, (game.cycleAdj||0) + 0.03); }
-
       const insolvent = game.capital<=0; if(insolvent){ game.alive=false; game.year=5; }
 
       const metaNotes = `${capFirst(y.type)} • loss:${y.loss}, infl:${y.infl}, inv:${y.invest}`;
-      const L = i18n[lang];
       const intro = (lang==='TR'? (y.textTR||`Yıl ${game.year}: ${capFirst(y.type)} koşullar.`) : (y.textEN||`Year ${game.year}: ${capFirst(y.type)} conditions.`));
       const decision = s==='conservative' ? (lang==='TR'?"Konservatif; yüksek reasürans, riskli bölgelerde sınırlı maruziyet." : "Conservative; higher reinsurance, limited high-risk exposure.")
                                            : (lang==='TR'?"Agresif; büyüme odaklı, reasürans sınırlı." : "Aggressive; growth-oriented, limited reinsurance.");
-      const leverLine = `${lang==='TR'?'Kollar':'Levers'}: ${leverText()} • ${lang==='TR'?'Piyasa döngü ayarı':'Market cycle adj'}: ${(game.cycleAdj||0).toFixed(2)}`;
+      const leverLine = `${lang==='TR'?'Kollar':'Levers'}: ${leverText()}`;
       const outcome = pl>=0 ? (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> kâr. Sermaye ${formatMoney(game.capital)}.`:"Outcome: <strong>"+formatMoney(pl)+"</strong> profit. Capital "+formatMoney(game.capital)+".")
                              : (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> zarar. Sermaye ${formatMoney(game.capital)}.`:"Outcome: <strong>"+formatMoney(pl)+"</strong> loss. Capital "+formatMoney(game.capital)+".");
       const metrics = (lang==='TR'? `Loss Ratio: ${Math.round(lossRatio*100)}% • Expense Ratio: ${Math.round(expenseRatio*100)}% • Combined: ${Math.round(combinedRatio*100)}% • RBC: ${rbc.toFixed(2)}` :
                                    `Loss Ratio: ${Math.round(lossRatio*100)}% • Expense Ratio: ${Math.round(expenseRatio*100)}% • Combined: ${Math.round(combinedRatio*100)}% • RBC: ${rbc.toFixed(2)}`);
-
-      // Causal narrative
-      const details = (function(){
-        const TR = (lang==='TR'); const lines=[];
-        if(y.infl==='high' || y.type==='crisis'){ lines.push(TR? 'Yüksek **enflasyon** yeniden inşa maliyetlerini artırdı; hasar şiddeti yükseldi.' : 'High **inflation** raised rebuild costs; claim severity increased.'); }
-        if(lev.commExpo>1.01){ lines.push(TR? 'Yüksek **komisyon** kanalı iştahlandırdı; gider oranı arttı.' : 'Higher **commissions** energized channels; expense ratio rose.'); }
-        if(lev.uwLossMul>1.01){ lines.push(TR? 'Gevşek **underwriting** riskli bölgelerde büyüme sağladı; frekans/şiddet bozuldu.' : 'Looser **UW** grew in riskier zones; frequency/severity worsened.'); }
-        if(y.type==='catastrophe'){
-          let hazard = TR? 'Katastrofik olay' : 'Catastrophic event';
-          if(/Marmara/i.test(game.scenario?.name||'')) hazard = TR? 'Bölgesel **deprem**' : 'Regional **earthquake**';
-          else if(/Hurricane/i.test(game.scenario?.name||'')) hazard = TR? '**Kasırga**' : '**Hurricane**';
-          else if(/Flood|Black Sea/i.test(game.scenario?.name||'')) hazard = TR? '**Sel/heyelan**' : '**Flood/landslide**';
-          lines.push(TR? `${hazard} geniş alanda hasara yol açtı; **retansiyon** düzeyi net kaybı belirledi.` : `${hazard} caused widespread damage; **retention** set the net loss.`);
-        }
-        if(invBase<0){ lines.push(TR? 'Piyasa düşüşü ile **yatırım zararı** oluştu.' : 'Market downturn produced **investment loss**.'); }
-        else if(invBase>0.045){ lines.push(TR? 'Piyasa **toparlanması** yatırım gelirini destekledi.' : 'Market **rebound** supported investment income.'); }
-        if(combinedRatio>1){ lines.push(TR? '**Combined %100+**: fiyat/seleksiyon + giderler kârlılığın üzerine çıktı.' : '**Combined >100%**: pricing/selection + expenses exceeded profitability.'); }
-        const title = TR? 'Detaylar' : 'Details';
-        return `<strong>${title}</strong><ul>`+lines.map(x=>`<li>${x}</li>`).join('')+`</ul>`;
-      })();
-
-      const riskNote = (game.capital<=0)? (lang==='TR'?"Cata yılı kayıpları sermayeyi negatife itti; şirket iflas etti." : "Catastrophe losses pushed capital negative; insolvency.")
+      const riskNote = insolvent ? (lang==='TR'?"Cata yılı kayıpları sermayeyi negatife itti; şirket iflas etti." : "Catastrophe losses pushed capital negative; insolvency.")
         : ( y.type==='catastrophe' && retention>0.9 ? (lang==='TR'?"Yüksek retansiyon net kaybı büyüttü." : "High retention magnified net loss.")
           : y.type==='catastrophe' && retention<0.6 ? (lang==='TR'?"Reasürans limitleri büyük kısmı karşıladı; şirket ayakta." : "Reinsurance covered much of it; company survives.")
           : (lang==='TR'?"Bir sonraki yıl için risk iştahını seç." : "Pick next year's risk appetite."));
 
       game.history.push({year:game.year, pl, capital:game.capital, type:y.type, strategy:s, lr:lossRatio, rbc, expenseRatio, combinedRatio, premium});
-      return { year:game.year, strategy:s, yearType:y.type, metaNotes, narrative:[intro, decision, leverLine, outcome, metrics, details, riskNote] };
+      return { year:game.year, strategy:s, yearType:y.type, metaNotes, narrative:[intro, decision, leverLine, outcome, metrics, riskNote] };
     }
 
     function leverText(){
@@ -693,13 +633,7 @@
     // ======================= Utils =======================
     function sample(arr){ return arr[Math.floor(Math.random()*arr.length)] }
 
-    function init(){
-      applyLang(); setYearbarActive(); refreshStats();
-      // Force Property (Non-Life) mode for this build
-      selectCompany('nonlife');
-      const cb = document.getElementById('company-buttons'); if(cb) cb.style.display='none';
-      const h2 = document.getElementById('t-choose-company'); if(h2) h2.textContent = 'Emlak (Hayat Dışı) modu';
-    }
+    function init(){ applyLang(); setYearbarActive(); refreshStats(); }
     init();
   </script>
 </body>
