@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Actuary Simulator – 4 Yıllık Risk & Sermaye Oyunu</title>
+  <meta name="description" content="Metin tabanlı aktüeryal karar simülasyonu: Hayat veya Emlak (Hayat Dışı) şirketiyle 4 yılda kriz & katastrofi yönetimi." />
+  <style>
+    :root{
+      --bg: #0b1020; --card: #111831; --muted: #8aa0c8; --text: #e9eefc; --accent:#6ae3ff; --danger:#ff6b6b; --success:#5ee1a1; --warning:#ffd166;
+      --shadow: 0 10px 30px rgba(0,0,0,.35); --radius:18px;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--text);
+      background: radial-gradient(1200px 800px at 70% -10%, #1a2a6c55, transparent),
+                  radial-gradient(900px 600px at -10% 30%, #b21f1f44, transparent),
+                  radial-gradient(1100px 900px at 110% 120%, #0b1020, #0b1020);}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6ae3ff,#7b78ff 60%,#b77bff);box-shadow:var(--shadow);display:grid;place-items:center}
+    .logo svg{filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+    .title{font-weight:800;letter-spacing:.2px}
+    .subtitle{color:var(--muted);font-size:.95rem}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(6px)}
+    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+    .panel{padding:20px 22px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:.9rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03)}
+    .buttons{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
+    button{all:unset;cursor:pointer;padding:12px 16px;border-radius:14px;font-weight:700;letter-spacing:.2px;user-select:none;background:#18223f;border:1px solid rgba(255,255,255,.08);transition:.2s transform,.2s background,.2s box-shadow;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+    button:hover{transform:translateY(-1px);background:#1e2a52} button:active{transform:translateY(0) scale(.99)}
+    .btn-accent{background:linear-gradient(135deg,#6ae3ff,#7b78ff);color:#081229;border:none}
+    .btn-danger{background:linear-gradient(135deg,#ff8890,#ff6b6b);color:#2b0e12;border:none}
+    .btn-success{background:linear-gradient(135deg,#5ee1a1,#5ed2e1);color:#062015;border:none}
+    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+    .stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px}
+    .stat small{color:var(--muted);display:flex;align-items:center;gap:6px}
+    .stat strong{font-size:1.2rem}
+    .badge{padding:2px 8px;border-radius:999px;font-size:.75rem}
+    .b-ok{background:#153e2f;color:#bff1dd;border:1px solid #2d7a5d}
+    .b-warn{background:#493a12;color:#ffe6a3;border:1px solid #b59028}
+    .b-bad{background:#4a1518;color:#ffc1c4;border:1px solid #9d2d35}
+    .footer{margin-top:14px;color:var(--muted);font-size:.9rem}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.55);z-index:100}
+    .modal.open{display:flex}
+    .letter{width:min(820px,92vw);max-height:88vh;overflow:auto;background:#faf9f4;color:#1c1a16;border-radius:18px;border:1px solid #e6e1d6;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:26px 26px 18px;position:relative}
+    .letter h3{margin:0 0 8px 0;font-size:1.4rem} .letter .meta{color:#645d4d;font-size:.95rem;margin-bottom:8px} .letter p{line-height:1.5}
+    .ribbon{position:absolute;top:0;right:16px;transform:translateY(-50%);background:#1e2a52;color:#fff;padding:6px 10px;border-radius:8px;font-size:.8rem;letter-spacing:.3px}
+    .ribbon.crisis{background:#b23a48} .ribbon.cat{background:#8a5a00} .ribbon.ok{background:#146c43}
+    .letter-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+    .yearbar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+    .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-size:.9rem}
+    .chip.active{background:linear-gradient(135deg,#6ae3ff,#7b78ff);color:#07142a;border:none}
+    .hr{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);margin:14px 0}
+    a.muted{color:var(--muted)}
+    .toggles{display:flex;gap:8px;align-items:center}
+    .switch{position:relative;width:44px;height:24px;border-radius:999px;background:rgba(255,255,255,.15);display:inline-block;vertical-align:middle}
+    .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+    .switch.on .knob{left:23px;background:#0c1a36}
+    .tooltip{position:fixed;z-index:120;display:none;max-width:320px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 50px rgba(0,0,0,.45);border-radius:12px;padding:10px 12px;font-size:.92rem}
+    .g{border-bottom:1px dotted currentColor;cursor:help}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="logo">
+            <path d="M12 2l7 3v6c0 5-3.2 9.4-7 11-3.8-1.6-7-6-7-11V5l7-3z" fill="white" opacity=".9"/>
+            <path d="M7 11h2v5H7v-5zm4-3h2v8h-2V8zm4 2h2v6h-2v-6z" fill="#0b1020"/>
+          </svg>
+        </div>
+        <div>
+          <div class="title" id="t-title">Actuary Simulator</div>
+          <div class="subtitle" id="t-subtitle">4‑yıllık risk & sermaye oyunu — Hayat vs Emlak</div>
+        </div>
+      </div>
+      <div class="toggles">
+        <span class="pill" id="mode-pill">Mode: <strong id="mode-label" style="margin-left:6px">—</strong></span>
+        <button class="pill" id="lang-pill" onclick="toggleLang()">🌐 <span id="lang-label">TR</span></button>
+        <span class="pill" id="edu-pill" onclick="toggleEdu()">📘 <span id="edu-label">Eğitim Modu: Kapalı</span></span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card panel">
+        <h2 style="margin:0 0 8px 0" id="t-choose-company">Şirket türünü seç</h2>
+        <p class="subtitle" style="margin-top:0" id="t-desc">Metin butonlarıyla 4 yıllık projeksiyon. Kriz & katastrofi riski içerir. Kararlarınız sermaye yeterliliğini etkiler.</p>
+
+        <div class="buttons" id="company-buttons">
+          <button class="btn-accent" onclick="selectCompany('life')">💙 <span id="t-life">Hayat Sigortası</span></button>
+          <button class="btn-success" onclick="selectCompany('nonlife')">🏠 <span id="t-nonlife">Emlak (Hayat Dışı)</span></button>
+        </div>
+
+        <div id="strategy-area" style="display:none; margin-top:10px">
+          <div class="hr"></div>
+          <h3 style="margin:8px 0 6px 0"><span id="t-risk-appetite">Risk iştahı</span> — <span id="year-label">Year 1</span></h3>
+          <div class="buttons">
+            <button onclick="chooseStrategy('conservative')">🧩 <span id="t-conservative">Konservatif</span></button>
+            <button onclick="chooseStrategy('aggressive')">⚡ <span id="t-aggressive">Agresif</span></button>
+            <button onclick="chooseStrategy('random')">🎲 <span id="t-random">Rastgele</span></button>
+          </div>
+          <p class="subtitle" style="margin-top:10px" id="t-hint">İpucu: Konservatif kötü yıllarda korur; agresif sakin yıllarda daha çok kazanır.</p>
+        </div>
+
+        <div id="flow-buttons" style="display:none; margin-top:14px" class="buttons">
+          <button class="btn-accent" onclick="nextStep()" id="t-start">▶️ Başlat / Devam</button>
+          <button onclick="resetGame()" id="t-newgame">🔁 Yeni Oyun</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="yearbar" id="yearbar">
+            <span class="chip">Y1</span><span class="chip">Y2</span><span class="chip">Y3</span><span class="chip">Y4</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card panel">
+        <h3 style="margin:0 0 8px 0" id="t-snapshot">Şirket özeti</h3>
+        <div class="stats">
+          <div class="stat"><small><span class="g" onclick="gloss('capital')" id="t-cap">Sermaye</span></small><strong id="stat-cap">—</strong></div>
+          <div class="stat"><small id="t-year">Yıl</small><strong id="stat-year">—</strong></div>
+          <div class="stat"><small id="t-lastpl">Son K/Z</small><strong id="stat-pl">—</strong></div>
+          <div class="stat"><small id="t-strategy">Strateji</small><strong id="stat-strategy">—</strong></div>
+          <div class="stat"><small><span class="g" onclick="gloss('rbc')">RBC</span> <span class="badge" id="rbc-badge">—</span></small><strong id="stat-rbc">—</strong></div>
+          <div class="stat"><small><span class="g" onclick="gloss('loss_ratio')" id="t-lr">Loss Ratio</span></small><strong id="stat-lr">—</strong></div>
+        </div>
+        <div class="hr"></div>
+        <h4 style="margin:0 0 8px 0" id="t-tips-ttl">İpuçları</h4>
+        <ul style="margin:0 0 0 18px; padding:0; color:var(--muted)" id="tips-list"></ul>
+        <div class="footer" id="t-deploy">Yayın: Bu dosyayı <code>index.html</code> olarak repo köküne koy → Settings → Pages (main/root).</div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="letter" role="dialog" aria-modal="true" aria-labelledby="ltitle">
+      <div class="ribbon ok" id="ribbon">NORMAL</div>
+      <h3 id="ltitle">Year Report</h3>
+      <div class="meta" id="lmeta">—</div>
+      <div id="lbody"><p>…</p></div>
+      <div class="letter-actions">
+        <button onclick="closeModal()" id="t-close">Kapat</button>
+        <button class="btn-accent" onclick="afterLetter()" id="t-next">İleri</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tooltip" class="tooltip"></div>
+
+  <script>
+    // ======================= I18N =======================
+    const i18n = {
+      TR: {
+        title:"Actuary Simulator", subtitle:"4‑yıllık risk & sermaye oyunu — Hayat vs Emlak",
+        choose_company:"Şirket türünü seç", desc:"Metin butonlarıyla 4 yıllık projeksiyon. Kriz & katastrofi riski içerir. Kararlarınız sermaye yeterliliğini etkiler.",
+        life:"Hayat Sigortası", nonlife:"Emlak (Hayat Dışı)", risk_appetite:"Risk iştahı",
+        conservative:"Konservatif", aggressive:"Agresif", random:"Rastgele", hint:"İpucu: Konservatif kötü yıllarda korur; agresif sakin yıllarda daha çok kazanır.",
+        start:"Başlat / Devam", newgame:"Yeni Oyun", snapshot:"Şirket özeti", cap:"Sermaye", year:"Yıl", lastpl:"Son K/Z", strategy:"Strateji",
+        rbc_badge:"RBC", lr:"Loss Ratio", tips_ttl:"İpuçları",
+        tips:[
+          "Her oyunda en az 1 kriz ve 1 katastrofi yılı vardır.",
+          "Konservatif = daha az kâr, kötü yıllarda daha çok koruma.",
+          "Agresif = sakin yıllarda daha çok kâr, kötü yılda iflas riski artar.",
+          "RBC oranı 1.0'ın altına düşerse tehlike büyür.",
+          "Loss Ratio = Hasar / Prim; %100 üzeri teknik zarar demektir."
+        ],
+        deploy:"Yayın: Bu dosyayı index.html olarak repo köküne koy → Settings → Pages (main/root).",
+        modal_close:"Kapat", modal_next:"İleri",
+        ribbon_normal:"NORMAL", ribbon_crisis:"KRİZ", ribbon_cat:"KATASTROFİK",
+        letterMeta:(sc,st,notes)=>`${sc} • Strateji: ${st} • ${notes}`,
+        end_summary:"Oyun Sonu — Özet",
+        end_lines:(capital, survived, hist, comp, scen)=>[
+          `<strong>4 Yıllık Özet</strong>`,
+          !survived? 'Şirket ara yılda iflas etti. Kriz/katastrofi maruziyeti sermayeyi eritti.' : '',
+          `Final sermaye: <strong>${capital}</strong>.`,
+          hist.some(h=>h.type==='catastrophe' && h.strategy==='conservative') ?
+            'Katastrofik yılda ihtiyatlılık ayakta kalmanı sağladı.' : 'Katastrofik yılda koruma sınırlıydı; büyük darbe alındı.',
+        ],
+        companyLabel:(c)=> c==='life'? 'Hayat' : 'Emlak',
+        stratLabel:(s)=> s==='conservative'? 'Konservatif' : 'Agresif',
+        glossary:{
+          capital:"Sermaye: Şirketin beklenmedik zararlara karşı tamponu.",
+          rbc:"RBC (Risk-Based Capital): Risklere göre gereken asgari sermaye. RBC<1 tehlikedir.",
+          loss_ratio:"Loss Ratio: Dönem hasarları / Primler. %100 üzeri teknik zarar gösterir.",
+          lapse:"Lapse: Hayat poliçesinin iptali/terki; beklenen kârlılığı düşürebilir.",
+          mortality:"Mortalite: Ölüm gerçekleşme oranı. Yüksek mortalite, hayat şirketi için yüksek hasar demektir.",
+          catastrophe:"Katastrofi: Nadir fakat çok büyük kayıp üreten olay (deprem, kasırga vb).",
+          crisis:"Kriz: Finansal/ekonomik stres yılı; yatırım getirileri düşer, maliyetler artar.",
+          reinsurance:"Reasürans: Büyük riskleri paylaşmak için başka sigortacıya devredilen kısım."
+        }
+      },
+      EN: {
+        title:"Actuary Simulator", subtitle:"4‑year risk & capital game — Life vs Property",
+        choose_company:"Choose your company", desc:"Text-based 4-year projection. Includes crisis & catastrophe risk. Your choices impact capital adequacy.",
+        life:"Life Insurance", nonlife:"Property (Non-Life)", risk_appetite:"Risk appetite",
+        conservative:"Conservative", aggressive:"Aggressive", random:"Random", hint:"Tip: Conservative protects in bad years; aggressive earns more in calm years.",
+        start:"Start / Continue", newgame:"New Game", snapshot:"Company snapshot", cap:"Capital", year:"Year", lastpl:"Last P/L", strategy:"Strategy",
+        rbc_badge:"RBC", lr:"Loss Ratio", tips_ttl:"Tips",
+        tips:[
+          "Each run has at least one crisis and one catastrophe year.",
+          "Conservative = lower profit, better protection in bad years.",
+          "Aggressive = higher profit in calm years, higher bankruptcy risk in bad years.",
+          "If RBC < 1.0, danger increases.",
+          "Loss Ratio = Claims / Premium; above 100% means technical loss."
+        ],
+        deploy:"Deploy: Save this file as index.html at repo root → Settings → Pages (main/root).",
+        modal_close:"Close", modal_next:"Next",
+        ribbon_normal:"NORMAL", ribbon_crisis:"CRISIS", ribbon_cat:"CATASTROPHE",
+        letterMeta:(sc,st,notes)=>`${sc} • Strategy: ${st} • ${notes}`,
+        end_summary:"Game Over — Summary",
+        end_lines:(capital, survived, hist, comp, scen)=>[
+          `<strong>4-Year Summary</strong>`,
+          !survived? 'The company went insolvent mid-projection. Crisis/catastrophe exposure eroded capital.' : '',
+          `Final capital: <strong>${capital}</strong>.`,
+          hist.some(h=>h.type==='catastrophe' && h.strategy==='conservative') ?
+            'Prudence kept you alive in the catastrophe year.' : 'Limited protection in the catastrophe year caused heavy damage.',
+        ],
+        companyLabel:(c)=> c==='life'? 'Life' : 'Property',
+        stratLabel:(s)=> s==='conservative'? 'Conservative' : 'Aggressive',
+        glossary:{
+          capital:"Capital: The buffer to absorb unexpected losses.",
+          rbc:"RBC (Risk-Based Capital): Minimum required capital relative to risk. RBC<1 is dangerous.",
+          loss_ratio:"Loss Ratio: Claims / Premium for the period. Above 100% implies technical loss.",
+          lapse:"Lapse: Policy termination/surrender; can reduce expected profitability.",
+          mortality:"Mortality: Death incidence rate. High mortality means higher life claims.",
+          catastrophe:"Catastrophe: Rare but very large-loss event (earthquake, hurricane, etc.).",
+          crisis:"Crisis: Financial/economic stress year; lower investment returns, higher costs.",
+          reinsurance:"Reinsurance: Transferring part of large risks to another insurer."
+        }
+      }
+    };
+
+    let lang = 'TR';
+    let edu = false;
+
+    function applyLang(){
+      const L = i18n[lang];
+      document.getElementById('t-title').textContent = L.title;
+      document.getElementById('t-subtitle').textContent = L.subtitle;
+      document.getElementById('t-choose-company').textContent = L.choose_company;
+      document.getElementById('t-desc').textContent = L.desc;
+      document.getElementById('t-life').textContent = L.life;
+      document.getElementById('t-nonlife').textContent = L.nonlife;
+      document.getElementById('t-risk-appetite').textContent = L.risk_appetite;
+      document.getElementById('t-conservative').textContent = L.conservative;
+      document.getElementById('t-aggressive').textContent = L.aggressive;
+      document.getElementById('t-random').textContent = L.random;
+      document.getElementById('t-hint').textContent = L.hint;
+      document.getElementById('t-start').textContent = '▶️ ' + L.start;
+      document.getElementById('t-newgame').textContent = '🔁 ' + L.newgame;
+      document.getElementById('t-snapshot').textContent = L.snapshot;
+      document.getElementById('t-cap').textContent = L.cap;
+      document.getElementById('t-year').textContent = L.year;
+      document.getElementById('t-lastpl').textContent = L.lastpl;
+      document.getElementById('t-strategy').textContent = L.strategy;
+      document.getElementById('t-lr').textContent = L.lr;
+      document.getElementById('t-tips-ttl').textContent = L.tips_ttl;
+      document.getElementById('t-deploy').textContent = L.deploy;
+      document.getElementById('t-close').textContent = L.modal_close;
+      document.getElementById('t-next').textContent = L.modal_next;
+      document.getElementById('lang-label').textContent = lang;
+      document.getElementById('edu-label').textContent = edu ? (lang==='TR'?'Eğitim Modu: Açık':'Education: On') : (lang==='TR'?'Eğitim Modu: Kapalı':'Education: Off');
+      // Tips list
+      const ul = document.getElementById('tips-list');
+      ul.innerHTML = L.tips.map(t=>`<li>${t}</li>`).join('');
+      // Ribbon text localize next time when opening
+    }
+
+    function tGloss(key){ return i18n[lang].glossary[key] || key }
+    function toggleLang(){ lang = (lang==='TR')? 'EN':'TR'; applyLang(); refreshStatsLabels(); }
+    function toggleEdu(){ edu = !edu; applyLang(); }
+
+    // ======================= Core state =======================
+    const game = { started:false, company:null, year:1, capital:100, lastPL:null, strategy:null, scenario:null, alive:true, history:[],
+      lastLR:null, lastRBC:null };
+
+    const dom = {
+      modePill: document.getElementById('mode-pill'), modeLabel: document.getElementById('mode-label'),
+      strategyArea: document.getElementById('strategy-area'), yearLabel: document.getElementById('year-label'), flowButtons: document.getElementById('flow-buttons'),
+      yearbar: document.getElementById('yearbar').children, statCap: document.getElementById('stat-cap'), statYear: document.getElementById('stat-year'),
+      statPL: document.getElementById('stat-pl'), statStrategy: document.getElementById('stat-strategy'), modal: document.getElementById('modal'),
+      ribbon: document.getElementById('ribbon'), ltitle: document.getElementById('ltitle'), lmeta: document.getElementById('lmeta'), lbody: document.getElementById('lbody'),
+      statLR: document.getElementById('stat-lr'), statRBC: document.getElementById('stat-rbc'), rbcBadge: document.getElementById('rbc-badge'), tooltip: document.getElementById('tooltip')
+    };
+
+    // ======================= Scenarios (expanded) =======================
+    // life: more profiles incl. heatwave & longevity drift
+    const lifeScenarios = [
+      { name:"Pandemic & Recession", years:[
+        { type:'normal', mort:'avg', lapse:'avg', invest:'avg', textTR:"Yıl 1: Piyasa dengeli, mortalite ve lapse beklentiye yakın.", textEN:"Year 1: Balanced markets; mortality and lapses near expectations." },
+        { type:'crisis', mort:'avg', lapse:'high', invest:'low', textTR:"Yıl 2: Finansal kriz; getiriler düşüyor, lapse artıyor.", textEN:"Year 2: Financial crisis; returns fall, lapses rise." },
+        { type:'catastrophe', mort:'veryHigh', lapse:'avg', invest:'avg', textTR:"Yıl 3: Pandemi; mortalite olağanüstü yüksek.", textEN:"Year 3: Pandemic; mortality extremely high." },
+        { type:'normal', mort:'low', lapse:'avg', invest:'high', textTR:"Yıl 4: Toparlanma; mortalite düşük, getiriler artıda.", textEN:"Year 4: Recovery; lower mortality, higher returns." }
+      ]},
+      { name:"Early Pandemic Shock", years:[
+        { type:'catastrophe', mort:'veryHigh', lapse:'avg', invest:'avg', textTR:"Yıl 1: Beklenmedik pandemi dalgası.", textEN:"Year 1: Unexpected pandemic wave." },
+        { type:'crisis', mort:'avg', lapse:'high', invest:'low', textTR:"Yıl 2: Ekonomik sarsıntı; yüksek lapse ve düşük getiri.", textEN:"Year 2: Economic shock; high lapse and low return." },
+        { type:'normal', mort:'avg', lapse:'avg', invest:'avg', textTR:"Yıl 3: Normalleşme dönemi.", textEN:"Year 3: Normalization." },
+        { type:'normal', mort:'low', lapse:'low', invest:'high', textTR:"Yıl 4: İyimser tablo; düşük mortalite ve düşük lapse.", textEN:"Year 4: Optimistic; low mortality and lapses." }
+      ]},
+      { name:"Heatwave Mortality", years:[
+        { type:'normal', mort:'avg', lapse:'avg', invest:'avg', textTR:"Yıl 1: Sakin.", textEN:"Year 1: Calm." },
+        { type:'normal', mort:'avg', lapse:'avg', invest:'high', textTR:"Yıl 2: Getiriler iyi.", textEN:"Year 2: Good returns." },
+        { type:'catastrophe', mort:'high', lapse:'avg', invest:'avg', textTR:"Yıl 3: Sıcak hava dalgası; mortalite yükseldi.", textEN:"Year 3: Heatwave; mortality elevated." },
+        { type:'crisis', mort:'avg', lapse:'high', invest:'low', textTR:"Yıl 4: Resesyon; lapse yükseldi, getiriler düştü.", textEN:"Year 4: Recession; lapses up, returns down." }
+      ]},
+      { name:"Longevity Drift & Recession", years:[
+        { type:'normal', mort:'low', lapse:'avg', invest:'avg', textTR:"Yıl 1: Mortalite düşük seyretti.", textEN:"Year 1: Mortality below expected." },
+        { type:'normal', mort:'low', lapse:'low', invest:'avg', textTR:"Yıl 2: Persistency yüksek.", textEN:"Year 2: Persistency high." },
+        { type:'crisis', mort:'avg', lapse:'high', invest:'low', textTR:"Yıl 3: Kriz; lapse yükseldi, yatırım zararı.", textEN:"Year 3: Crisis; lapses up, investment loss." },
+        { type:'normal', mort:'avg', lapse:'avg', invest:'avg', textTR:"Yıl 4: Dengelenme.", textEN:"Year 4: Stabilization." }
+      ]}
+    ];
+
+    // non-life: TR-centric variants (earthquake, floods, urban fire)
+    const nonLifeScenarios = [
+      { name:"Hurricane Alley", years:[
+        { type:'normal', loss:'slightlyHigh', infl:'avg', invest:'avg', textTR:"Yıl 1: Orta ölçekli hasarlar (fırtına/yangın).", textEN:"Year 1: Many mid-sized losses (storms/fires)." },
+        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 2: Kategori 5 kasırga; büyük kayıplar.", textEN:"Year 2: Category 5 hurricane; large losses." },
+        { type:'normal', loss:'low', infl:'avg', invest:'high', textTR:"Yıl 3: Sakin; fiyatlar yükseldi.", textEN:"Year 3: Calm; rates hardened." },
+        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Kriz ve yüksek enflasyon.", textEN:"Year 4: Crisis with high inflation." }
+      ]},
+      { name:"Marmara Quake", years:[
+        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 1: Beklentiye yakın.", textEN:"Year 1: Near expectations." },
+        { type:'normal', loss:'slightlyHigh', infl:'avg', invest:'avg', textTR:"Yıl 2: Küçük depremler ve yağış hasarları.", textEN:"Year 2: Minor quakes and rainfall losses." },
+        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 3: Büyük bölgesel deprem; çok yüksek tazminat.", textEN:"Year 3: Major regional earthquake; very high claims." },
+        { type:'normal', loss:'avg', infl:'avg', invest:'high', textTR:"Yıl 4: Yeniden yapılanma dönemi; fiyatlar artıda.", textEN:"Year 4: Rebuilding; pricing improved." }
+      ]},
+      { name:"Black Sea Floods", years:[
+        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 1: Mevsim normalleri.", textEN:"Year 1: Seasonal norms." },
+        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 2: Ani sel ve heyelan; geniş etki.", textEN:"Year 2: Flash floods & landslides; wide impact." },
+        { type:'normal', loss:'low', infl:'avg', invest:'high', textTR:"Yıl 3: Sakin; iyileşme yılı.", textEN:"Year 3: Calm; recovery year." },
+        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Ekonomik baskı ve maliyet artışları.", textEN:"Year 4: Economic pressure and cost inflation." }
+      ]},
+      { name:"Urban Fire Risk", years:[
+        { type:'normal', loss:'low', infl:'avg', invest:'avg', textTR:"Yıl 1: Sakin.", textEN:"Year 1: Calm." },
+        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 2: Kentsel yangınlarda artış.", textEN:"Year 2: Uptick in urban fires." },
+        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 3: Büyük endüstriyel yangın; tekil fakat dev hasar.", textEN:"Year 3: Major industrial fire; single but huge loss." },
+        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Enflasyon hasar maliyetlerini yükseltti.", textEN:"Year 4: Inflation raised claim costs." }
+      ]}
+    ];
+
+    // ======================= UI helpers =======================
+    function setYearbarActive(){ Array.from(dom.yearbar).forEach((n,idx)=>{ if(idx===game.year-1) n.classList.add('active'); else n.classList.remove('active'); }); }
+    function formatMoney(v){ return "$"+Number(v).toFixed(1)+"M" }
+    function capFirst(s){ return s? s[0].toUpperCase()+s.slice(1): s }
+
+    function refreshStats(){
+      dom.statCap.textContent = formatMoney(game.capital);
+      dom.statYear.textContent = game.year + (game.alive?"/4":" (end)");
+      dom.statPL.textContent = (game.lastPL==null?"—": ((game.lastPL>=0?"+":"")+formatMoney(game.lastPL)) );
+      dom.statStrategy.textContent = game.strategy? i18n[lang].stratLabel(game.strategy) : '—';
+      dom.statLR.textContent = (game.lastLR==null? '—' : (Math.round(game.lastLR*100)+'%'));
+      if (game.lastRBC==null){ dom.statRBC.textContent='—'; dom.rbcBadge.className='badge'; dom.rbcBadge.textContent=i18n[lang].rbc_badge; }
+      else{
+        dom.statRBC.textContent = game.lastRBC.toFixed(2);
+        const cls = game.lastRBC<1? 'b-bad' : (game.lastRBC<1.5? 'b-warn' : 'b-ok');
+        dom.rbcBadge.className = 'badge '+cls; dom.rbcBadge.textContent = i18n[lang].rbc_badge;
+      }
+    }
+    function refreshStatsLabels(){ // relabel static bits on lang switch
+      dom.modeLabel.textContent = game.company? (i18n[lang].companyLabel(game.company)) : '—';
+      refreshStats();
+    }
+
+    // ======================= Game flow =======================
+    function selectCompany(type){
+      game.company = type; dom.modeLabel.textContent = i18n[lang].companyLabel(type);
+      game.started=false; game.year=1; game.capital=100; game.lastPL=null; game.strategy=null; game.alive=true; game.history=[]; game.lastLR=null; game.lastRBC=null;
+      dom.strategyArea.style.display='block'; dom.yearLabel.textContent = `Year ${game.year}`; dom.flowButtons.style.display='flex';
+      setYearbarActive(); refreshStats();
+    }
+    function chooseStrategy(s){ if(s==='random') s = Math.random()<.5? 'conservative':'aggressive'; game.strategy=s; refreshStats(); }
+    function nextStep(){ if(!game.company){alert('Pick a company first.'); return} if(!game.started){ game.scenario = (game.company==='life'? sample(lifeScenarios): sample(nonLifeScenarios)); game.started=true; } if(!game.strategy){ alert('Choose strategy.'); return } simulateYear(); }
+    function resetGame(){ location.reload(); }
+    function afterLetter(){ closeModal(); if(!game.alive || game.year>4){ showEndSummary(); return } dom.yearLabel.textContent = `Year ${game.year}`; game.strategy=null; refreshStats(); scrollTo({top:0,behavior:'smooth'}); }
+
+    // ======================= Simulation =======================
+    function simulateYear(){
+      const plan = (game.company==='life')? lifeYearModel(): nonLifeYearModel();
+      // Letter
+      const L = i18n[lang];
+      dom.ribbon.textContent = plan.yearType==='catastrophe'? L.ribbon_cat : (plan.yearType==='crisis'? L.ribbon_crisis : L.ribbon_normal);
+      dom.ribbon.className = 'ribbon ' + (plan.yearType==='catastrophe'? 'cat' : (plan.yearType==='crisis'? 'crisis' : 'ok'));
+      dom.ltitle.textContent = `${L.companyLabel(game.company)} — Year ${plan.year}`;
+      dom.lmeta.textContent = L.letterMeta(game.scenario.name, L.stratLabel(plan.strategy), plan.metaNotes);
+      dom.lbody.innerHTML = plan.narrative.map(p=>`<p>${p}</p>`).join('');
+      openModal();
+      // advance
+      game.year += 1; setYearbarActive(); refreshStats();
+    }
+
+    function lifeYearModel(){
+      const yIdx = game.year-1; if(yIdx>3){ return endStub(); }
+      const y = game.scenario.years[yIdx]; const s = game.strategy; const L = i18n[lang];
+      const exposure = (s==='aggressive')? 1.18 : 0.92; const reins = (s==='conservative')? 0.65 : 1.0; const priceMargin = (s==='aggressive')? 0.16 : 0.10;
+      const mortMul = { low:0.92, avg:1.00, high:1.15, veryHigh:2.2 }[y.mort] || 1.0;
+      const lapseMul = { low:0.6, avg:1.0, high:1.8 }[y.lapse] || 1.0; const invMul = { high:0.06, avg:0.035, low:-0.05 }[y.invest] ?? 0.03;
+      const basePremium = 22; const premium = basePremium * exposure; const baseClaims = 16; let claims = baseClaims * mortMul * exposure; if(y.type==='catastrophe') claims *= reins;
+      const lapseCost = 2.5 * (lapseMul-1); const expense = 4.5 * exposure; const invest = game.capital * invMul; if(y.type==='crisis'){ claims *= 1.05 }
+      let pl = (premium * priceMargin) - (claims - baseClaims*0.7) - expense + invest - Math.max(0,lapseCost); pl = Number(pl.toFixed(1));
+      const totalClaims = Number((claims).toFixed(1));
+      // Loss ratio notion for life (claims/prem)
+      const lossRatio = Math.max(0, Math.min(3, totalClaims / Math.max(1, premium*priceMargin + baseClaims*0.7))); // pseudo basis
+      // RBC requirement (toy): 40 + 0.25*premium + mortality stress + cat add-on
+      const req = 40 + 0.25*premium + (mortMul-1)*20 + (y.type==='catastrophe'? 20:0);
+      game.capital = Number((game.capital + pl).toFixed(1)); game.lastPL = pl;
+      const rbc = game.capital / Math.max(1, req); game.lastLR = lossRatio; game.lastRBC = rbc;
+      const insolvent = game.capital<=0; if(insolvent){ game.alive=false; game.year=5; }
+      const metaNotes = `${capFirst(y.type)} • mort:${y.mort}, lapse:${y.lapse}, inv:${y.invest}`;
+      const intro = (lang==='TR'? (y.textTR||`Yıl ${game.year}: ${capFirst(y.type)} yıl.`) : (y.textEN||`Year ${game.year}: ${capFirst(y.type)} year.`));
+      const decision = s==='conservative' ? (lang==='TR'?"Konservatif duruş; rezerv & reasürans koruması devredeydi.":"Conservative stance; reserves & reinsurance in place.") : (lang==='TR'?"Agresif duruş; büyüme ve getiriyi öncelediniz, koruma sınırlıydı.":"Aggressive stance; growth & returns prioritized, limited protection.");
+      const outcome = pl>=0 ? (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> kâr. Sermaye ${formatMoney(game.capital)} oldu.`:`Outcome: <strong>${formatMoney(pl)}</strong> profit. Capital is now ${formatMoney(game.capital)}.`)
+                               : (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> zarar. Sermaye ${formatMoney(game.capital)} seviyesine düştü.`:`Outcome: <strong>${formatMoney(pl)}</strong> loss. Capital dropped to ${formatMoney(game.capital)}.`);
+      const metrics = (lang==='TR'? `Loss Ratio: ${(Math.round(lossRatio*100))}% • RBC: ${rbc.toFixed(2)}` : `Loss Ratio: ${Math.round(lossRatio*100)}% • RBC: ${rbc.toFixed(2)}`);
+      const riskNote = insolvent ? (lang==='TR'?"Şirket yükümlülüklerini karşılayamaz hale geldi; oyun sona erdi.":"The company became insolvent; simulation ended.")
+        : ( y.type==='catastrophe' && s==='aggressive' ? (lang==='TR'?"Yüksek mortalite şokunda koruma eksikliği darbeyi büyüttü.":"Limited protection amplified the mortality shock.")
+          : y.type==='catastrophe' && s==='conservative' ? (lang==='TR'?"Reasürans ve ihtiyatlılık kaybı sınırladı.":"Reinsurance & prudence limited the loss.")
+          : y.type==='crisis' && s==='aggressive' ? (lang==='TR'?"Piyasa şokunda agresif tutum yatırım & hasarı artırdı.":"Aggressive stance amplified market & claim stress.")
+          : (lang==='TR'?"Bir sonraki yıl için risk iştahını seç.":"Pick your next year's risk appetite."));
+      game.history.push({year:game.year, pl, capital:game.capital, type:y.type, strategy:s, lr:lossRatio, rbc});
+      return { year:game.year, strategy:s, yearType:y.type, metaNotes, narrative:[intro, decision, outcome, metrics, riskNote] };
+    }
+
+    function nonLifeYearModel(){
+      const yIdx = game.year-1; if(yIdx>3){ return endStub(); }
+      const y = game.scenario.years[yIdx]; const s = game.strategy; const L = i18n[lang];
+      const exposure = (s==='aggressive')? 1.22 : 0.9; const reins = (s==='conservative')? 0.55 : 0.95; const basePremium = 26; const premium = basePremium * exposure;
+      let nonCatClaimsBase = 14 * exposure; const lossTilt = { low:0.85, avg:1.0, slightlyHigh:1.2, cat:3.5 }[y.loss] || 1.0; nonCatClaimsBase *= lossTilt;
+      let catLoss = 0; if(y.type==='catastrophe'){ catLoss = 60 * exposure * reins; }
+      const inflMul = { avg:1.0, high:1.18 }[y.infl] || 1.0; nonCatClaimsBase *= inflMul;
+      const invMul = { high:0.05, avg:0.03, low:-0.06 }[y.invest] ?? 0.03; const invest = game.capital * invMul; if(y.type==='crisis'){ nonCatClaimsBase *= 1.08 }
+      const expense = 5.0 * exposure + (s==='conservative'? 2.2: 0.8); const priceMargin = (s==='aggressive')? 0.18 : 0.11;
+      let pl = (premium * priceMargin) - (nonCatClaimsBase - 10) - catLoss - expense + invest; pl = Number(pl.toFixed(1));
+      const totalClaims = Number((nonCatClaimsBase + catLoss).toFixed(1)); const lossRatio = Math.max(0, Math.min(3, totalClaims / Math.max(1, premium)));
+      const req = 40 + 0.3*premium + (y.type==='catastrophe'? 35:0) + (lossTilt>1? 5:0); // toy RBC requirement
+      game.capital = Number((game.capital + pl).toFixed(1)); game.lastPL = pl; const rbc = game.capital / Math.max(1, req); game.lastLR = lossRatio; game.lastRBC = rbc;
+      const insolvent = game.capital<=0; if(insolvent){ game.alive=false; game.year=5; }
+      const metaNotes = `${capFirst(y.type)} • loss:${y.loss}, infl:${y.infl}, inv:${y.invest}`;
+      const intro = (lang==='TR'? (y.textTR||`Yıl ${game.year}: ${capFirst(y.type)} koşullar.`) : (y.textEN||`Year ${game.year}: ${capFirst(y.type)} conditions.`));
+      const decision = s==='conservative' ? (lang==='TR'?"Konservatif; yüksek reasürans, riskli bölgelerde sınırlı maruziyet.":"Conservative; higher reinsurance, limited high-risk exposure.")
+                                           : (lang==='TR'?"Agresif; büyüme odaklı, reasürans sınırlı.":"Aggressive; growth-oriented, limited reinsurance.");
+      const outcome = pl>=0 ? (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> kâr. Sermaye ${formatMoney(game.capital)} oldu.`:`Outcome: <strong>${formatMoney(pl)}</strong> profit. Capital is now ${formatMoney(game.capital)}.`)
+                               : (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> zarar. Sermaye ${formatMoney(game.capital)} seviyesine düştü.`:`Outcome: <strong>${formatMoney(pl)}</strong> loss. Capital dropped to ${formatMoney(game.capital)}.`);
+      const metrics = (lang==='TR'? `Loss Ratio: ${Math.round(lossRatio*100)}% • RBC: ${rbc.toFixed(2)}` : `Loss Ratio: ${Math.round(lossRatio*100)}% • RBC: ${rbc.toFixed(2)}`);
+      const riskNote = insolvent ? (lang==='TR'?"Cata yılı kayıpları sermayeyi negatife itti; şirket iflas etti.":"Catastrophe losses pushed capital negative; insolvency.")
+        : ( y.type==='catastrophe' && s==='aggressive' ? (lang==='TR'?"Reasürans yetersizliği net kaybı büyüttü.":"Insufficient reinsurance magnified the net loss.")
+          : y.type==='catastrophe' && s==='conservative' ? (lang==='TR'?"Reasürans limitleri büyük kısmı karşıladı; şirket ayakta.":"Reinsurance covered much of it; company survives.")
+          : y.type==='crisis' && s==='aggressive' ? (lang==='TR'?"Enflasyon & yatırım kayıpları agresif tutumda daha hissedilir oldu.":"Inflation & investment losses hit harder under aggressive stance.")
+          : (lang==='TR'?"Bir sonraki yıl için risk iştahını seç.":"Pick your next year's risk appetite."));
+      game.history.push({year:game.year, pl, capital:game.capital, type:y.type, strategy:s, lr:lossRatio, rbc});
+      return { year:game.year, strategy:s, yearType:y.type, metaNotes, narrative:[intro, decision, outcome, metrics, riskNote] };
+    }
+
+    function endStub(){ return {year:4, strategy:game.strategy, yearType:'normal', metaNotes:'—', narrative:['Projection finished.']} }
+
+    // ======================= Modal & Tooltip =======================
+    function openModal(){ dom.modal.classList.add('open') }
+    function closeModal(){ dom.modal.classList.remove('open') }
+
+    function gloss(key){ if(!edu) return; const text = tGloss(key); const tt = dom.tooltip; tt.textContent = text; tt.style.display='block';
+      // place near bottom-right of viewport for simplicity
+      tt.style.right = '16px'; tt.style.bottom = '16px'; tt.style.left = 'auto'; tt.style.top='auto';
+      clearTimeout(gloss._timer); gloss._timer = setTimeout(()=>{ tt.style.display='none' }, 5000);
+    }
+
+    function showEndSummary(){
+      const L = i18n[lang]; const survived = game.alive && game.year>4; const lines = L.end_lines(formatMoney(game.capital), survived, game.history, L.companyLabel(game.company), game.scenario?.name||'');
+      dom.ribbon.textContent = 'SUMMARY'; dom.ribbon.className='ribbon ok'; dom.ltitle.textContent = L.end_summary; dom.lmeta.textContent = `${L.companyLabel(game.company)} • ${game.scenario?.name||''}`;
+      dom.lbody.innerHTML = lines.filter(Boolean).map(p=>`<p>${p}</p>`).join('') + `<p style="margin-top:8px;color:#4c4536">${lang==='TR'? 'Yeniden oyna ve farklı strateji kombinasyonlarını dene. Şans & strateji dengesi önemlidir.' : 'Play again and try different strategy mixes. Balance luck & strategy.'}</p>`;
+      openModal();
+    }
+
+    // ======================= Utils =======================
+    function sample(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+
+    function setYearbar(){ setYearbarActive(); }
+
+    function init(){ applyLang(); setYearbarActive(); refreshStats(); }
+
+    init();
+  </script>
+</body>
+</html>
