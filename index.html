@@ -20,7 +20,7 @@
   .row{display:flex;gap:8px;align-items:center}
   .row>div{flex:1}
   .btn{appearance:none;border:1px solid #334155;background:#0b1023;color:#fff;border-radius:10px;padding:9px 12px;cursor:pointer}
-  .btn.primary{background:var(--accent);border-color:#22d3ee;color:#04121a;font-weight:600}
+  .btn.primary{background:var(--accent);border-color:#22c55e;color:#04121a;font-weight:600}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .hr{height:1px;background:#1f2937;margin:12px 0}
   .muted{color:var(--muted);font-size:12px}
@@ -31,7 +31,6 @@
   .ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}
   .face{font-size:42px;line-height:1}
   .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:12px}
-
   /* Modal */
   .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);display:none;align-items:center;justify-content:center;z-index:50}
   .modal .box{background:#0b1023;border:1px solid #334155;border-radius:12px;padding:16px;max-width:680px;width:92%}
@@ -121,7 +120,7 @@
 
   </section>
 
-  <!-- ALT SATIR: Yıl Sonuçları Tablosu (tam genişlik) -->
+  <!-- ALT SATIR: Yıl Sonuçları Tablosu -->
   <section class="card">
     <h2>Yıl Sonuçları</h2>
     <div style="max-height:460px;overflow:auto;border:1px solid #223047;border-radius:10px">
@@ -143,216 +142,241 @@
 </div>
 
 <!-- Modal -->
-<div id="modal" class="modal"><div class="box" id="modalBox"></div></div>
+<div id="modal" class="modal" role="dialog" aria-modal="true"><div class="box" id="modalBox"></div></div>
 
 <script>
-// ===== Helpers =====
-function $(id){return document.getElementById(id)}
-function showModal(html){$("modalBox").innerHTML=html;$("modal").style.display="flex"}
-function closeModal(){ $("modal").style.display="none" }
-function clamp(x,a,b){return Math.max(a, Math.min(b, x))}
-function fmt(x,d=2){return Number(x).toFixed(d)}
-function rngNormal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return mu+sigma*z;}
-function rngTNormal(mu,sigma,a,b){for(let i=0;i<1000;i++){const x=rngNormal(mu,sigma);if(x>=a&&x<=b)return x;}return clamp(mu,a,b);}
-function zAlpha(a){if(a>=0.975)return 1.96;if(a>=0.95)return 1.6449;if(a>=0.90)return 1.2816;return 0.8416;}
-function band(cap){if(cap>=100)return"H";if(cap>=75)return"M";if(cap>=50)return"L";return"Z";}
+(function(){
+  // ===== Helpers =====
+  const $=id=>document.getElementById(id);
+  const showModal=html=>{ $("modalBox").innerHTML=html; $("modal").style.display="flex"; };
+  const closeModal=()=>{ $("modal").style.display="none"; };
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+  const fmt=(x,d=2)=>Number(x).toFixed(d);
+  function rngNormal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return mu+sigma*z;}
+  function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,sigma);if(x>=a&&x<=b)return x;}return clamp(mu,a,b);}
+  const zAlpha=a=>a>=0.975?1.96:a>=0.95?1.6449:a>=0.90?1.2816:0.8416;
+  const band=cap=>cap>=100?"H":cap>=75?"M":cap>=50?"L":"Z";
 
-// ===== Config & State =====
-const CONFIG = {
-  capital0: 100,
-  taxRate: 0.20,
-  baseGwp: 90,      // ≈ sermayenin %90'ı
-  sigma0: 0.05,
-  sigmaMin: 0.02, sigmaMax: 0.18,
-  tau_c: 0.08,      // observation gürültü katsayısı
-  tau_kappa: {normal:1.00, pricewar:1.10, cat:1.30, pr:1.05},
-  lrBounds: [0.40,1.30],
-};
-const state = {
-  year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100,
-  event:null, cache:null, readyReserve:false, readyDividend:false
-};
+  // ===== Config & State =====
+  const CONFIG = {
+    capital0: 100,
+    taxRate: 0.20,
+    baseGwp: 90,
+    sigma0: 0.05, sigmaMin: 0.02, sigmaMax: 0.18,
+    tau_c: 0.08,
+    tau_kappa: {normal:1.00, pricewar:1.10, cat:1.30, pr:1.05},
+    lrBounds: [0.40,1.30],
+  };
+  const state = {
+    year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100,
+    event:null, cache:null
+  };
 
-// ===== Event set (μ event-bazlı) =====
-const EVENTS = [
-  {key:"normal",   name:"Normal",       p:0.50,   mu:0.65, sigmaMul:1.00, volMul:1.00, paidShare:0.60},
-  {key:"pricewar", name:"Fiyat Savaşı", p:0.1667, mu:0.70, sigmaMul:1.05, volMul:1.05, paidShare:0.55},
-  {key:"cat",      name:"CAT",          p:0.1667, mu:0.80, sigmaMul:1.20, volMul:1.00, paidShare:0.40},
-  {key:"pr",       name:"PR Krizi",     p:0.1667, mu:0.66, sigmaMul:1.02, volMul:0.95, paidShare:0.50},
-];
+  const EVENTS = [
+    {key:"normal",   name:"Normal",       p:0.50,   mu:0.65, sigmaMul:1.00, volMul:1.00, paidShare:0.60},
+    {key:"pricewar", name:"Fiyat Savaşı", p:0.1667, mu:0.70, sigmaMul:1.05, volMul:1.05, paidShare:0.55},
+    {key:"cat",      name:"CAT",          p:0.1667, mu:0.80, sigmaMul:1.20, volMul:1.00, paidShare:0.40},
+    {key:"pr",       name:"PR Krizi",     p:0.1667, mu:0.66, sigmaMul:1.02, volMul:0.95, paidShare:0.50},
+  ];
 
-// σ katkıları (strateji)
-function dPrice(v){return v==="cheap"?+0.025:v==="exp"?-0.015:0;}
-function dUW(v){return v==="loose"?+0.035:v==="strict"?-0.025:0;}
-function dChannel(v){return v==="agent"?+0.008:v==="digital"?-0.004:0;}
-function dAds(v){return v==="low"?+0.004:v==="high"?-0.004:0;}
+  // σ katkıları
+  const dPrice=v=>v==="cheap"?+0.025:v==="exp"?-0.015:0;
+  const dUW=v=>v==="loose"?+0.035:v==="strict"?-0.025:0;
+  const dChannel=v=>v==="agent"?+0.008:v==="digital"?-0.004:0;
+  const dAds=v=>v==="low"?+0.004:v==="high"?-0.004:0;
 
-// GWP çarpanları
-function fPrice(v){return v==="cheap"?1.30:v==="exp"?0.85:1.10;}
-function fUW(v){return v==="loose"?1.10:v==="strict"?0.90:1.00;}
-function fChannel(v){return v==="agent"?1.10:v==="digital"?0.95:1.00;}
-function fAds(level){const L={low:0,mid:1,high:2}[level];return 1+0.08*L-0.02*L*L;}
+  // GWP çarpanları
+  const fPrice=v=>v==="cheap"?1.30:v==="exp"?0.85:1.10;
+  const fUW=v=>v==="loose"?1.10:v==="strict"?0.90:1.00;
+  const fChannel=v=>v==="agent"?1.10:v==="digital"?0.95:1.00;
+  const fAds=level=>{const L={low:0,mid:1,high:2}[level];return 1+0.08*L-0.02*L*L;};
 
-// Masraf oranları (sabit)
-function commPct(ch){if(ch==="agent")return 0.18;if(ch==="digital")return 0.05;return 0.12;}
-function adsPct(level){if(level==="low")return 0.01;if(level==="high")return 0.06;return 0.03;}
+  // Masraflar (sabit oran)
+  const commPct=ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12;
+  const adsPct=level=>level==="low"?0.01:level==="high"?0.06:0.03;
 
-// Regülasyon
-function regulationCheck(newCap){
-  // Medium: <50 ilkinde uyarı, ikincide iflas
-  if(newCap<50){ if(!state.warned){state.warned=true; return {fail:false,warn:true};} return {fail:true,warn:false}; }
-  return {fail:false,warn:false};
-}
+  // Regülasyon (medium)
+  function regulationCheck(newCap){
+    if(newCap<50){ if(!state.warned){state.warned=true; return {fail:false,warn:true};} return {fail:true,warn:false}; }
+    return {fail:false,warn:false};
+  }
 
-// CEO paneli
-function setFace(ratio){$("ceoFace").textContent = ratio<0.10 ? "☹️" : (ratio<0.15 ? "😐" : "🙂");}
-function renderCEO(note=""){
-  const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
-  state.score = Math.round(Math.max(0, Math.min(200, 100 + (ratio-0.10)*1000)));
-  setFace(ratio);
-  $("ceoStats").innerText = `Skor: ${state.score} / 200\nMutluluk Oranı (Kümül. Temettü / Sermaye): ${(ratio*100).toFixed(1)}%`;
-  $("statusBox").innerText = note || `Yıl ${state.year-1} kapandı. Yeni yıl için "Yılı Başlat" → "Olayı Çek".`;
-}
-renderCEO("Oyun hazır. \"Yılı Başlat\" → \"Olayı Çek\".");
+  function setFace(r){$("ceoFace").textContent = r<0.10 ? "☹️" : (r<0.15 ? "😐" : "🙂");}
+  function renderCEO(note=""){
+    const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
+    state.score = Math.round(Math.max(0, Math.min(200, 100 + (ratio-0.10)*1000)));
+    setFace(ratio);
+    $("ceoStats").innerText = `Skor: ${state.score} / 200\nMutluluk Oranı (Kümül. Temettü / Sermaye): ${(ratio*100).toFixed(1)}%`;
+    $("statusBox").innerText = note || `Yıl ${state.year-1} kapandı. Yeni yıl için "Yılı Başlat" → "Olayı Çek".`;
+  }
+  renderCEO(`Oyun hazır. "Yılı Başlat" → "Olayı Çek".`);
 
-// === Üst panel butonları ===
-$("resetGame").addEventListener("click", ()=>{
-  Object.assign(state,{year:1,capital:CONFIG.capital0,cumDiv:0,warned:false,score:100,event:null,cache:null,readyReserve:false,readyDividend:false});
-  $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
-  $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=true;
-  document.querySelector("#yearsTbl tbody").innerHTML="";
-  renderCEO("Oyun sıfırlandı.");
-});
-
-$("startYear").addEventListener("click", ()=>{
-  if(state.year===1) state.capital=CONFIG.capital0;
-  state.event=null; state.cache=null; state.readyReserve=false; state.readyDividend=false;
-  $("eventBadge").innerText="Olay: —"; $("midInfo").innerText=`Yıl ${state.year} başladı. Sermaye: ${fmt(state.capital)}.`;
-  $("drawEvent").disabled=false; $("reserveBtn").disabled=true; $("divBtn").disabled=true;
-});
-
-$("drawEvent").addEventListener("click", ()=>{
-  // Suspense modal
-  showModal(`<div style="display:flex;align-items:center;gap:10px"><span class="spinner"></span><div><b>Olay belirleniyor…</b><br/><span class="muted">Zar atılıyor, 5 saniye sonra açıklanacak.</span></div></div>`);
-  setTimeout(()=>{
-    // Olay seç
-    const u=Math.random(); let acc=0, ev=EVENTS[0];
-    for(const e of EVENTS){acc+=e.p;if(u<=acc){ev=e;break;}}
-    state.event=ev;
-    $("eventBadge").innerHTML=`Olay: <span class="pill">${ev.name}</span>`;
-    // Sonucu yaz ve modalı kapat
-    $("modalBox").innerHTML = `<div><b>Bu yılın olayı:</b> <span class="pill">${ev.name}</span><div class="hr"></div><button class="btn primary" id="okEv">Devam</button></div>`;
-    $("okEv").onclick=()=>{ closeModal(); afterEventIncurred(); };
-  }, 5000);
-});
-
-function afterEventIncurred(){
-  const ev = state.event; if(!ev) return;
-  const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
-
-  // GWP
-  const GWP = CONFIG.baseGwp * fPrice(price) * fUW(uw) * fChannel(ch) * fAds(ads) * ev.volMul;
-
-  // PRIOR σ
-  let sigma_prior = CONFIG.sigma0 + dPrice(price)+dUW(uw)+dChannel(ch)+dAds(ads);
-  sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax) * ev.sigmaMul;
-  sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax);
-
-  const mu_event = ev.mu;
-
-  // Observation (incurred)
-  const sigma_pre = clamp(0.7*sigma_prior, CONFIG.sigmaMin*0.9, CONFIG.sigmaMax);
-  const lr_inc = rngTNormal(mu_event, sigma_pre, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-  const incurredAmt = GWP * lr_inc;
-  const paid = incurredAmt * ev.paidShare;
-  const outstanding = incurredAmt - paid;
-
-  // Bayes: τ ve posterior
-  const tau = CONFIG.tau_c * CONFIG.tau_kappa[ev.key] / Math.sqrt(ev.paidShare);
-  const var_prior = sigma_prior*sigma_prior, var_tau=tau*tau;
-  const var_post  = 1/(1/var_prior+1/var_tau);
-  const sigma_post = Math.sqrt(var_post);
-  const mu_post = var_post*(mu_event/var_prior + lr_inc/var_tau);
-
-  // Cache: yıl ortası verileri
-  state.cache = {GWP, mu_post, sigma_post, lr_inc, paid, outstanding, ev, ch, ads};
-
-  // Panel güncelle
-  $("midInfo").innerText = `GWP=${fmt(GWP)} | incurred LR=${(lr_inc*100).toFixed(1)}% → Panel 2'den rezerv yaklaşımı seçin.`;
-  $("midPanel").innerText = `Ödenen=${fmt(paid)} | Muallak=${fmt(outstanding)} | Posterior σ=${sigma_post.toFixed(3)}`;
-  $("reserveBtn").disabled=false; $("drawEvent").disabled=true;
-}
-
-// Rezerv seçimi (Panel 2)
-$("reserveBtn").addEventListener("click", ()=>{
-  if(!state.cache){alert("Önce olayı çekin.");return;}
-  showModal(`
-    <div>
-      <b>Rezerv yaklaşımını seç:</b>
-      <div class="choices" style="margin-top:8px">
-        <button class="btn" data-res="low">Düşük (α≈0.80)</button>
-        <button class="btn" data-res="mid">Nötr (α≈0.90)</button>
-        <button class="btn" data-res="high">Fazla (α≈0.95)</button>
-      </div>
-    </div>
-  `);
-  document.querySelectorAll('.choices .btn').forEach(b=>{
-    b.onclick=()=>{ closeModal(); reserveChosen(b.dataset.res); };
+  // ==== Butonlar ====
+  $("resetGame").addEventListener("click", ()=>{
+    Object.assign(state,{year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100, event:null, cache:null});
+    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
+    $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=true;
+    const tb=document.querySelector("#yearsTbl tbody"); if(tb) tb.innerHTML="";
+    renderCEO("Oyun sıfırlandı.");
   });
-});
 
-function reserveChosen(choice){
-  const k = state.cache; if(!k) return;
-  const alpha = choice==="low"?0.80 : choice==="high"?0.95 : 0.90;
-  const zq = zAlpha(alpha);
-  const lr_star = clamp(k.mu_post + zq*k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
+  $("startYear").addEventListener("click", ()=>{
+    if(state.year===1) state.capital=CONFIG.capital0;
+    state.event=null; state.cache=null;
+    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText=`Yıl ${state.year} başladı. Sermaye: ${fmt(state.capital)}.`;
+    $("drawEvent").disabled=false; $("reserveBtn").disabled=true; $("divBtn").disabled=true;
+  });
 
-  // Real LR posterior’dan
-  const lr_real = rngTNormal(k.mu_post, k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-  const realClaims = k.GWP * lr_real;
+  $("drawEvent").addEventListener("click", ()=>{
+    showModal(`<div style="display:flex;align-items:center;gap:10px"><span class="spinner"></span><div><b>Olay belirleniyor…</b><br/><span class="muted">Zar atılıyor, 5 saniye sonra açıklanacak.</span></div></div>`);
+    setTimeout(()=>{
+      const u=Math.random(); let acc=0, ev=EVENTS[0];
+      for(const e of EVENTS){acc+=e.p;if(u<=acc){ev=e;break;}}
+      state.event=ev;
+      $("eventBadge").innerHTML=`Olay: <span class="pill">${ev.name}</span>`;
+      $("modalBox").innerHTML = `<div><b>Bu yılın olayı:</b> <span class="pill">${ev.name}</span><div class="hr"></div><button class="btn primary" id="okEv">Devam</button></div>`;
+      $("okEv").onclick=()=>{ closeModal(); afterEventIncurred(); };
+    }, 5000);
+  });
 
-  const chosenReserve = Math.max(0, k.GWP*lr_star - (k.paid+k.outstanding));
-  const neededReserve = Math.max(0, realClaims - k.paid);
-  const finalReserve  = Math.max(chosenReserve, neededReserve);
+  function afterEventIncurred(){
+    const ev = state.event; if(!ev){return;}
+    const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
 
-  const comm = k.GWP * commPct(k.ch);
-  const adsCost = k.GWP * adsPct(k.ads);
+    const GWP = CONFIG.baseGwp * fPrice(price) * fUW(uw) * fChannel(ch) * fAds(ads) * ev.volMul;
 
-  const preTax = k.GWP - (k.paid + finalReserve) - comm - adsCost;
-  const tax = preTax>0 ? preTax*CONFIG.taxRate : 0;
-  const afterTax = preTax - tax;
+    let sigma_prior = CONFIG.sigma0 + dPrice(price)+dUW(uw)+dChannel(ch)+dAds(ads);
+    sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax) * ev.sigmaMul;
+    sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax);
 
-  // geçici sonuçları cache'e yaz
-  state.cache = {...k, choice, lr_star, lr_real, realClaims, chosenReserve, neededReserve, finalReserve, comm, adsCost, preTax, tax, afterTax};
-  $("endPanel").innerText = `VÖ=${fmt(preTax)} | Vergi=${fmt(tax)} | VS=${fmt(afterTax)} → Panel 3'ten temettü seçin.`;
-  $("divBtn").disabled=false; $("reserveBtn").disabled=true;
-}
+    const mu_event = ev.mu;
 
-// Temettü seçimi (Panel 3)
-$("divBtn").addEventListener("click", ()=>{
-  const k = state.cache; if(!k){alert("Önce rezerv seçin.");return;}
-  if(k.afterTax<=0){
-    showModal(`<div><b>Vergi sonrası net kâr: ${fmt(k.afterTax)}</b><br/><span class="muted">❌ Kâr yok; temettü dağıtılamaz.</span><div class="hr"></div><button class="btn primary" id="okNoDiv">Tamam</button></div>`);
-    $("okNoDiv").onclick=()=>{ closeModal(); closeYear(0); };
-  }else{
+    const sigma_pre = clamp(0.7*sigma_prior, CONFIG.sigmaMin*0.9, CONFIG.sigmaMax);
+    const lr_inc = rngTNormal(mu_event, sigma_pre, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
+    const incurredAmt = GWP * lr_inc;
+    const paid = incurredAmt * ev.paidShare;
+    const outstanding = incurredAmt - paid;
+
+    const tau = CONFIG.tau_c * CONFIG.tau_kappa[ev.key] / Math.sqrt(ev.paidShare);
+    const var_prior = sigma_prior*sigma_prior, var_tau = tau*tau;
+    const var_post = 1/(1/var_prior + 1/var_tau);
+    const sigma_post = Math.sqrt(var_post);
+    const mu_post = var_post*(mu_event/var_prior + lr_inc/var_tau);
+
+    state.cache = {GWP, mu_post, sigma_post, lr_inc, paid, outstanding, ev, ch, ads};
+    $("midInfo").innerText = `GWP=${fmt(GWP)} | incurred LR=${(lr_inc*100).toFixed(1)}% → Panel 2'den rezerv yaklaşımı seçin.`;
+    $("midPanel").innerText = `Ödenen=${fmt(paid)} | Muallak=${fmt(outstanding)} | Posterior σ=${sigma_post.toFixed(3)}`;
+    $("reserveBtn").disabled=false; $("drawEvent").disabled=true;
+  }
+
+  $("reserveBtn").addEventListener("click", ()=>{
+    if(!state.cache){alert("Önce olayı çekin.");return;}
     showModal(`
       <div>
-        <b>Vergi sonrası net kâr: ${fmt(k.afterTax)}</b><br/><span class="muted">Temettü ödemek ister misiniz?</span>
-        <div class="choices">
-          <button class="btn" data-div="0">%0</button>
-          <button class="btn" data-div="0.5">%50</button>
-          <button class="btn" data-div="0.75">%75</button>
-          <button class="btn" data-div="1">%100</button>
+        <b>Rezerv yaklaşımını seç:</b>
+        <div class="choices" style="margin-top:8px">
+          <button class="btn" data-res="low">Düşük (α≈0.80)</button>
+          <button class="btn" data-res="mid">Nötr (α≈0.90)</button>
+          <button class="btn" data-res="high">Fazla (α≈0.95)</button>
         </div>
       </div>
     `);
     document.querySelectorAll('.choices .btn').forEach(b=>{
-      b.onclick=()=>{ const rate=parseFloat(b.dataset.div); closeModal(); closeYear(rate); };
+      b.onclick=()=>{ closeModal(); applyReserve(b.dataset.res); };
     });
+  });
+
+  function applyReserve(choice){
+    const k = state.cache; if(!k){return;}
+    const alpha = choice==="low"?0.80:choice==="high"?0.95:0.90;
+    const zq = zAlpha(alpha);
+    const lr_star = clamp(k.mu_post + zq*k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
+
+    const lr_real = rngTNormal(k.mu_post, k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
+    const realClaims = k.GWP * lr_real;
+
+    const chosenReserve = Math.max(0, k.GWP*lr_star - (k.paid+k.outstanding));
+    const neededReserve = Math.max(0, realClaims - k.paid);
+    const finalReserve  = Math.max(chosenReserve, neededReserve);
+
+    const comm = k.GWP * commPct(k.ch);
+    const adsCost = k.GWP * adsPct(k.ads);
+
+    const preTax = k.GWP - (k.paid + finalReserve) - comm - adsCost;
+    const tax = preTax>0 ? preTax*CONFIG.taxRate : 0;
+    const afterTax = preTax - tax;
+
+    state.cache = {...k, choice, lr_star, lr_real, realClaims, chosenReserve, neededReserve, finalReserve, comm, adsCost, preTax, tax, afterTax};
+    $("endPanel").innerText = `VÖ=${fmt(preTax)} | Vergi=${fmt(tax)} | VS=${fmt(afterTax)} → Panel 3'ten temettü seçin.`;
+    $("divBtn").disabled=false; $("reserveBtn").disabled=true;
   }
-});
 
-function closeYear(divRate){
-  const k = state.cache; if(!k) return;
+  $("divBtn").addEventListener("click", ()=>{
+    const k = state.cache; if(!k){alert("Önce rezerv seçin.");return;}
+    if(k.afterTax<=0){
+      showModal(`<div><b>Vergi sonrası net kâr: ${fmt(k.afterTax)}</b><br/><span class="muted">❌ Kâr yok; temettü dağıtılamaz.</span><div class="hr"></div><button class="btn primary" id="okNoDiv">Tamam</button></div>`);
+      $("okNoDiv").onclick=()=>{ closeModal(); closeYear(0); };
+    }else{
+      showModal(`
+        <div>
+          <b>Vergi sonrası net kâr: ${fmt(k.afterTax)}</b><br/><span class="muted">Temettü ödemek ister misiniz?</span>
+          <div class="choices">
+            <button class="btn" data-div="0">%0</button>
+            <button class="btn" data-div="0.5">%50</button>
+            <button class="btn" data-div="0.75">%75</button>
+            <button class="btn" data-div="1">%100</button>
+          </div>
+        </div>
+      `);
+      document.querySelectorAll('.choices .btn').forEach(b=>{
+        b.onclick=()=>{ const rate=parseFloat(b.dataset.div); closeModal(); closeYear(rate); };
+      });
+    }
+  });
 
-  const dividend   =
+  function closeYear(divRate){
+    const k = state.cache; if(!k){return;}
+    const dividend = k.afterTax>0 ? k.afterTax*divRate : 0;
+    const yearEndCap = state.capital + k.afterTax - dividend;
+
+    const reg = regulationCheck(yearEndCap);
+    if(reg.warn) alert("⚠️ Sermaye 50'nin altına düştü: Uyarı! Bir kez daha olursa iflas.");
+    const fail = reg.fail;
+
+    state.cumDiv += dividend;
+    state.capital = yearEndCap;
+
+    const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
+    renderCEO();
+    if(state.year>=2 && ratio<0.10){
+      showModal(`<div><b>CEO işten çıkarıldı.</b><div class="hr"></div><div class="mono">Sebep: 2+ yıl sonunda (Kümül. Temettü / Sermaye) < %10</div><div class="hr"></div><button class="btn" id="okFired">Tamam</button></div>`);
+      $("okFired").onclick=()=>closeModal();
+    }
+
+    const tr=document.createElement("tr");
+    tr.innerHTML = `
+      <td>${state.year}</td><td>${k.ev.name}</td><td>${fmt(k.GWP)}</td>
+      <td>${(k.lr_inc*100).toFixed(1)}%</td><td>${(k.lr_real*100).toFixed(1)}%</td><td>${(k.lr_star*100).toFixed(1)}%</td>
+      <td>${fmt(k.paid)}</td><td>${fmt(k.outstanding)}</td><td>${fmt(k.chosenReserve)}</td><td>${fmt(k.finalReserve)}</td>
+      <td>${fmt(k.comm)}</td><td>${fmt(k.adsCost)}</td>
+      <td class="${k.preTax>=0?'ok':'bad'}">${fmt(k.preTax)}</td><td>${fmt(k.tax)}</td><td class="${k.afterTax>=0?'ok':'bad'}">${fmt(k.afterTax)}</td><td>${fmt(dividend)}</td>
+      <td>${fmt(yearEndCap)}</td><td>${band(yearEndCap)}</td>`;
+    const tb=document.querySelector("#yearsTbl tbody"); if(tb) tb.prepend(tr);
+
+    if(fail){
+      showModal(`<div><b>İflas tetiklendi.</b><div class="hr"></div><button class="btn" id="okFail">Tamam</button></div>`);
+      $("okFail").onclick=()=>closeModal();
+    }else if(state.year>=5){
+      showModal(`<div><b>5 yıl tamamlandı.</b><div class="mono">Mutluluk Oranı: ${(ratio*100).toFixed(1)}% | Skor: ${state.score}</div><div class="hr"></div><button class="btn" id="okEnd">Tamam</button></div>`);
+      $("okEnd").onclick=()=>closeModal();
+    }
+
+    state.year += 1;
+    state.event=null; state.cache=null;
+    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
+
+    $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=false;
+  }
+})();</script>
+</body>
+</html>
