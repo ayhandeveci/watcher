@@ -1,454 +1,446 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Watcher – Yıllık Sigorta Simülatörü (GitHub Pages)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Watcher – Yıllık Sigorta Simülasyonu (MDP)</title>
 <style>
-  :root{
-    --bg:#0f1222; --card:#171a2c; --muted:#9aa3b2; --fg:#eef2ff; --accent:#7aa2ff; --ok:#50d38a; --warn:#ffd066; --bad:#ff7a7a;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,#0c1020,#0f1222 60%);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-  header{padding:20px 16px;border-bottom:1px solid #22263e;position:sticky;top:0;background:#0f1222d0;backdrop-filter: blur(6px)}
-  h1{margin:0;font-size:20px;letter-spacing:.3px}
-  main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns: 1.1fr 1.5fr}
-  .card{background:var(--card);border:1px solid #232845;border-radius:12px;padding:14px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-  select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b3050;background:#0f1326;color:var(--fg);font-size:14px}
-  button{cursor:pointer;background:linear-gradient(180deg,#24305a,#1b264d);border-color:#2a376a}
-  button.primary{background:linear-gradient(180deg,#3b5bdc,#2845a8);border-color:#2d47a8}
-  button.ghost{background:transparent;border-color:#344;opacity:.9}
-  .hint{color:var(--muted);font-size:12px;margin-top:6px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-  .kpi{background:#0f1326;border:1px solid #232845;border-radius:10px;padding:10px}
-  .kpi b{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
-  .kpi span{font-size:18px}
-  .kpi.ok span{color:var(--ok)} .kpi.warn span{color:var(--warn)} .kpi.bad span{color:var(--bad)}
+  :root{--bg:#0f172a;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;}
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+  body{margin:0;background:linear-gradient(180deg,#0b1023,#0f172a 20%,#0f172a);color:var(--ink)}
+  header{padding:20px 16px;border-bottom:1px solid #1f2937;position:sticky;top:0;background:#0f172a;z-index:9}
+  h1{margin:0;font-size:20px}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px;display:grid;gap:16px}
+  .grid{display:grid;gap:16px}
+  .cols-3{grid-template-columns:repeat(3,1fr)}
+  .cols-2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:16px}
+  .card h2{margin:0 0 12px 0;font-size:16px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
+  select,input[type="number"],input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1023;color:#fff}
+  .row{display:flex;gap:8px;align-items:center}
+  .row>div{flex:1}
+  .btn{appearance:none;border:1px solid #334155;background:#0b1023;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+  .btn:hover{border-color:#475569}
+  .btn.primary{background:var(--accent);border-color:#22d3ee;color:#04121a;font-weight:600}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{border-bottom:1px solid #232845;padding:8px 6px;text-align:right}
-  th{color:#a9b3c7;font-weight:600}
-  td:first-child, th:first-child{text-align:left}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2b3050;font-size:11px;color:#cbd5ff}
-  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .footer{color:var(--muted);font-size:12px;margin-top:8px}
-  .sep{height:1px;background:#232845;margin:10px 0}
-  .muted{color:var(--muted)}
-  .danger{color:var(--bad);font-weight:600}
-  .success{color:var(--ok);font-weight:600}
+  th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
+  th{color:#cbd5e1}
+  .muted{color:var(--muted);font-size:12px}
+  .ok{color:#22c55e}.warn{color:#fbbf24}.bad{color:#f87171}
+  .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:12px}
+  .hr{height:1px;background:#1f2937;margin:12px 0}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .right{display:flex;justify-content:flex-end;gap:8px}
+  @media(max-width:980px){.cols-3,.cols-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Watcher – Yıllık Sigorta Simülatörü</h1>
-</header>
-<main>
-  <section class="card">
-    <h2 style="margin:0 0 6px 0;font-size:16px">Yıl Başı Stratejisi</h2>
-    <div class="row">
-      <div>
-        <label>Fiyatlama</label>
-        <select id="pricing">
-          <option value="cheap">Ucuz (hacim↑, risk↑)</option>
-          <option value="mid" selected>Orta (dengeli)</option>
-          <option value="expensive">Pahalı (hacim↓, risk↓)</option>
-        </select>
-      </div>
-      <div>
-        <label>Underwriting (Risk Kabul)</label>
-        <select id="uw">
-          <option value="loose">Gevşek (riskli karışım)</option>
-          <option value="mid" selected>Orta</option>
-          <option value="tight">Sıkı (daha temiz portföy)</option>
-        </select>
-      </div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <div>
-        <label>Satış Kanalı</label>
-        <select id="channel">
-          <option value="agent">Acente (komisyon yüksek)</option>
-          <option value="balanced" selected>Dengeli</option>
-          <option value="digital">Dijital (komisyon düşük)</option>
-        </select>
-      </div>
-      <div>
-        <label>Reklam & İmaj</label>
-        <select id="ads">
-          <option value="low">Düşük</option>
-          <option value="mid" selected>Orta</option>
-          <option value="high">Yüksek</option>
-        </select>
-      </div>
-    </div>
+<header><h1>🕹️ Watcher — Yıllık Sigorta Simülasyonu (vergi + rezerv + regülasyon)</h1></header>
+<div class="wrap">
 
-    <div class="sep"></div>
-
-    <div class="grid2">
-      <div>
-        <label>Regülasyon (Zorluk)</label>
-        <select id="regime">
-          <option value="easy">Easy – <50 iflas</option>
-          <option value="medium" selected>Medium – <75 iki yıl üst üste iflas</option>
-          <option value="hard">Hard – <100 iflas</option>
-        </select>
+  <!-- STRATEJİLER -->
+  <section class="grid cols-3">
+    <div class="card">
+      <h2>1) Yıl Başı Stratejileri</h2>
+      <label>Fiyatlama</label>
+      <select id="price">
+        <option value="cheap">Ucuz (rekabetçi)</option>
+        <option value="mid" selected>Orta</option>
+        <option value="expensive">Pahalı</option>
+      </select>
+      <label>Underwriting (Risk Kabul)</label>
+      <select id="uw">
+        <option value="loose">Gevşek</option>
+        <option value="neutral" selected>Orta</option>
+        <option value="strict">Sıkı</option>
+      </select>
+      <label>Satış Kanalı</label>
+      <select id="channel">
+        <option value="agent">Acente Ağırlıklı</option>
+        <option value="balanced" selected>Dengeli</option>
+        <option value="digital">Dijital Ağırlıklı</option>
+      </select>
+      <label>Reklam & İmaj</label>
+      <select id="ads">
+        <option value="low">Düşük</option>
+        <option value="mid" selected>Orta</option>
+        <option value="high">Yüksek</option>
+      </select>
+      <div class="hr"></div>
+      <label>Regülasyon (Zorluk)</label>
+      <select id="regime">
+        <option value="easy">Easy (gevşek)</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard (sıkı)</option>
+      </select>
+      <label>Vergi Oranı (%)</label>
+      <input id="tax" type="number" step="1" value="20"/>
+      <label>Başlangıç Sermayesi</label>
+      <input id="capitalStart" type="number" step="1" value="100"/>
+      <div class="hr"></div>
+      <div class="right">
+        <button class="btn" id="resetYear">Yılı Sıfırla</button>
       </div>
-      <div>
-        <label>Vergi Oranı</label>
-        <select id="tax">
-          <option value="0.10">%10</option>
-          <option value="0.20" selected>%20</option>
-          <option value="0.30">%30</option>
-        </select>
-      </div>
+      <p class="muted">Not: Stratejiler <b>eş zamanlı seçilir</b>, etkiler hesaplamada ardışık işlenir.</p>
     </div>
 
-    <div class="sep"></div>
-    <div class="flex">
-      <button id="btnRoll" class="primary">1) Olayları Çek (Yıl İçi)</button>
-      <span class="hint">Olay çekildikten sonra yıl sonu rezerv politikasını seçeceksin.</span>
-    </div>
-
-    <div id="eventBox" style="display:none;margin-top:10px">
-      <div class="pill" id="eventPill">Olay: —</div>
-      <div class="metrics">
-        <div class="kpi"><b>GWP (Prim)</b><span id="mGwp">—</span></div>
-        <div class="kpi"><b>LR (Hasar Oranı)</b><span id="mLR">—</span></div>
-        <div class="kpi"><b>Komisyon</b><span id="mComm">—</span></div>
-      </div>
-      <div class="metrics">
-        <div class="kpi"><b>Reklam</b><span id="mAds">—</span></div>
-        <div class="kpi"><b>Tahsil (ödenen)</b><span id="mPaid">—</span></div>
-        <div class="kpi"><b>Rezerv Bazı</b><span id="mResBase">—</span></div>
-      </div>
-
-      <div class="sep"></div>
+    <!-- PRIOR / POSTERIOR -->
+    <div class="card">
+      <h2>2) Şans Olayları (Prior → Posterior)</h2>
+      <p class="muted">Prior olasılıkları ve etkileri düzenle. “Ağırlıkla & Normalize Et” ile stratejiye bağlı posterior oluştur.</p>
+      <table id="priorTbl">
+        <thead><tr><th>Olay</th><th>p (prior)</th><th>LR Δ (puan)</th><th>Hacim çarpanı</th></tr></thead>
+        <tbody></tbody>
+      </table>
       <div class="row">
-        <div>
-          <label>Yıl Sonu Rezerv Politikası</label>
-          <select id="reservePolicy">
-            <option value="conservative">Konservatif (yüksek rezerv)</option>
-            <option value="neutral" selected>Nötr</option>
-            <option value="aggressive">Agresif (düşük rezerv)</option>
-          </select>
-          <div class="hint">Rezerv kararı kapanış öncesi verilir.</div>
-        </div>
-        <div style="display:flex;align-items:flex-end">
-          <button id="btnClose" class="primary">2) Yılı Kapat (Rezerv + Vergi + Sermaye)</button>
-        </div>
+        <button class="btn" id="posteriorBtn">Stratejiye Göre Ağırlıkla & Normalize Et</button>
+        <button class="btn" id="savePriors">Priors JSON İndir</button>
+        <input type="file" id="loadPriors" accept="application/json" class="btn"/>
       </div>
+      <div class="hr"></div>
+      <h3>Posterior (kullanılacak)</h3>
+      <table id="postTbl">
+        <thead><tr><th>Olay</th><th>p (post)</th><th>LR Δ</th><th>Hacim çarpanı</th><th>Ağırlık notu</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- REZERV & SİMÜLASYON -->
+    <div class="card">
+      <h2>3) Yıl Sonu — Rezerv Politikası</h2>
+      <select id="reserve">
+        <option value="conservative">Konservatif (×1.20)</option>
+        <option value="neutral" selected>Nötr (×1.00)</option>
+        <option value="aggressive">Agresif (×0.80)</option>
+      </select>
+      <div class="hr"></div>
+      <h2>4) Simülasyon Parametreleri</h2>
+      <label>Baz GWP</label><input id="baseGwp" type="number" value="100"/>
+      <label>Baz LR (%)</label><input id="baseLR" type="number" value="65"/>
+      <label>Komisyon (Acente / Dengeli / Dijital) %</label>
+      <div class="row">
+        <input id="cAgent" type="number" value="18"/><input id="cBalanced" type="number" value="12"/><input id="cDigital" type="number" value="5"/>
+      </div>
+      <label>Reklam (Düşük / Orta / Yüksek) % GWP</label>
+      <div class="row">
+        <input id="aLow" type="number" value="1"/><input id="aMid" type="number" value="3"/><input id="aHigh" type="number" value="6"/>
+      </div>
+      <div class="hr"></div>
+      <div class="right">
+        <button class="btn primary" id="runYear">Yılı İşlet</button>
+        <button class="btn" id="sampleSpace">Örneklem Uzayı (CSV)</button>
+      </div>
+      <p class="muted">Sonuçlar aşağıdaki tabloda ve raporda görünür.</p>
     </div>
   </section>
 
+  <!-- RAPORLAR -->
+  <section class="grid cols-2">
+    <div class="card">
+      <h2>Yıl Sonu Hesap Özeti</h2>
+      <table id="resultTbl">
+        <thead><tr><th>Olay</th><th>p</th><th>GWP</th><th>LR%</th><th>Kom%</th><th>Rek%</th><th>Net Kâr VÖ</th><th>Vergi</th><th>Net Kâr VS</th><th>Yeni Sermaye</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Toplam / Regülasyon</h2>
+      <div id="totals" class="mono"></div>
+      <div class="hr"></div>
+      <h3>Yıl Akışı</h3>
+      <ol class="muted">
+        <li>Yıl başı: Fiyat + UW + Kanal + Reklam seçildi.</li>
+        <li>Posterior olasılıklar stratejiye göre üretildi.</li>
+        <li>Yıl sonu: Rezerv politikası uygulandı.</li>
+        <li>Vergi sonrası net kâr sermayeye eklendi, iflas kontrolü yapıldı.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- AÇIKLAMA -->
   <section class="card">
-    <h2 style="margin:0 0 6px 0;font-size:16px">Durum & Rapor</h2>
-    <div class="grid2">
-      <div class="kpi"><b>Yıl</b><span id="kYear">1</span></div>
-      <div class="kpi"><b>Sermaye</b><span id="kCapital">100.00</span></div>
-    </div>
-    <div class="metrics">
-      <div class="kpi" id="kpiStatus"><b>Durum</b><span id="kStatus">Başlangıç</span></div>
-      <div class="kpi"><b>İflas Eşiği</b><span id="kThresh">Medium: <75 iki yıl</span></div>
-      <div class="kpi"><b>İmaj</b><span id="kBrand">Orta</span></div>
-    </div>
-    <div class="sep"></div>
-    <div class="flex">
-      <button id="btnNext" class="ghost" disabled>Yeni Yıla Geç</button>
-      <button id="btnReset" class="">Sıfırla</button>
-      <span class="hint">Yıl kapanmadan yeni yıla geçemezsin.</span>
-    </div>
-    <div class="sep"></div>
-    <div class="footer">Her yıl: Strateji → Olay → <b>Rezerv Seç</b> → Vergi & Sermaye → İflas kontrol → Yeni yıl.</div>
+    <h2>Notlar</h2>
+    <ul class="muted">
+      <li>Posterior ağırlıklandırma: strateji, olaylara <b>ağırlık</b> verir (ör. rekabetçi fiyat → “Fiyat savaşı” olayı ağırlık kazanır). Ağırlıklar normalize edilerek p(post) üretilir.</li>
+      <li>Rezerv politikası yıl sonunda seçilir ve (Hasar Ödemesi × katsayı) olarak gider yazılır.</li>
+      <li>Kombine rasyo = LR + Komisyon + Reklam (rapor tablosunda dolaylı izlenir).</li>
+    </ul>
   </section>
 
-  <section class="card" style="grid-column:1 / -1">
-    <h2 style="margin:0 0 6px 0;font-size:16px">Yıl Bazlı Kayıt</h2>
-    <table id="log">
-      <thead>
-        <tr>
-          <th>Yıl</th><th>Olay</th><th>Fiyat</th><th>UW</th><th>Kanal</th><th>Reklam</th>
-          <th>Rezerv</th><th>GWP</th><th>LR</th><th>Ödenen</th><th>Rezerv</th><th>Kom.</th><th>Reklam</th><th>VÖ</th><th>Vergi</th><th>VS</th><th>Sermaye</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
-</main>
+</div>
 
 <script>
-/* =========================
-   CONFIG – katsayılar
-   ========================= */
-const CONFIG = {
-  baseGWP: 100,         // baz prim (denge & normal)
-  baseLR: 0.65,         // baz hasar oranı (LR)
-  tax: 0.20,            // default; UI'dan güncellenir
-  paidRatio: 0.70,      // yıl içinde ödenen hasar oranı
-  // Olay olasılıkları (toplam 1.0)
-  events: [
-    {name:"Normal", p:0.60, lrAdd:0.00, volMul:1.00, brand:"="},
-    {name:"Fiyat Savaşı", p:0.20, lrAdd:0.05, volMul:1.10, brand:"-"},
-    {name:"Cat", p:0.15, lrAdd:0.12, volMul:1.00, brand:"="},
-    {name:"PR Krizi", p:0.05, lrAdd:0.01, volMul:0.90, brand:"--"}
+/** --- Basit veri modeli --- **/
+const state = {
+  priors: [
+    {key:"normal", name:"Normal",      p:0.60, lrDelta:0,   volMul:1.00},
+    {key:"pricewar",name:"Fiyat Savaşı",p:0.20, lrDelta:5,  volMul:1.10},
+    {key:"cat",     name:"Cat (Sel/Deprem)", p:0.15, lrDelta:12, volMul:1.00},
+    {key:"pr",      name:"PR Krizi",   p:0.05, lrDelta:1,   volMul:0.90},
   ],
-  // Strateji etkileri
-  pricing: {
-    cheap:      {volMul:1.00, lrAdd:0.08}, // ucuz → risk↑
-    mid:        {volMul:1.00, lrAdd:0.00},
-    expensive:  {volMul:0.85, lrAdd:-0.06}
-  },
-  uw: {
-    loose:{lrAdd:0.04}, mid:{lrAdd:0.00}, tight:{lrAdd:-0.03}
-  },
-  channel: {
-    agent:{comm:0.18, brand:"+", demand:1.00},
-    balanced:{comm:0.12, brand:"=", demand:1.00},
-    digital:{comm:0.05, brand:"-", demand:0.95}
-  },
-  ads: {
-    low:{rate:0.01, brand:-1, demand:0.95},
-    mid:{rate:0.03, brand:0, demand:1.00},
-    high:{rate:0.06, brand:+1, demand:1.10}
-  },
-  reservePolicy:{
-    conservative:{mult:1.20, label:"Konservatif"},
-    neutral:{mult:1.00, label:"Nötr"},
-    aggressive:{mult:0.80, label:"Agresif"}
-  },
-  regimes:{
-    easy:{label:"Easy: <50 iflas", test:(cap, trail)=> cap<50 ? "FAIL" : "OK"},
-    medium:{label:"Medium: <75 iki yıl", test:(cap, trail)=> {
-      // trail: önceki yılda <75 miydi?
-      if(cap < 75){
-        return (trail ? "FAIL" : "WARN"); // üst üste iki yıl <75 → FAIL
-      }
-      return "OK";
-    }},
-    hard:{label:"Hard: <100 iflas", test:(cap, trail)=> cap<100 ? "FAIL" : "OK"}
-  }
+  posteriors: [],
+  capital: 100,
+  warned: false // Medium rejimde Z bandında uyarı
 };
 
-// Global durum
-let state = {
-  year: 1,
-  capital: 100.00,
-  brandScore: 0,           // imaj (negatif / pozitif)
-  lowTrailPrev: false,     // Medium rejimde <75 geçmiş yıl bayrağı
-  regime: "medium",
-  taxRate: CONFIG.tax,
-  locked: false,           // olay çekildi mi?
-  current: null            // geçici yıl verileri (kapanış öncesi)
-};
+function $(id){return document.getElementById(id)}
 
-// Kısayol
-const $ = sel => document.querySelector(sel);
-const logBody = $("#log tbody");
-
-// UI init
-function refreshUI(){
-  $("#kYear").textContent = state.year;
-  $("#kCapital").textContent = state.capital.toFixed(2);
-  $("#kBrand").textContent = state.brandScore>0 ? "Yüksek"
-                      : state.brandScore<0 ? "Düşük" : "Orta";
-  const reg = CONFIG.regimes[state.regime];
-  $("#kThresh").textContent = reg.label;
-  $("#kStatus").textContent = state.locked ? "Yıl içi olay çekildi" : "Strateji bekleniyor";
-  $("#kpiStatus").className = "kpi " + (state.locked ? "warn":"");
-  $("#eventBox").style.display = state.locked ? "block" : "none";
-  $("#btnNext").disabled = !!state.locked; // kapanmadan geçiş yok
+function renderPriorTable(){
+  const tb = $("priorTbl").querySelector("tbody");
+  tb.innerHTML = "";
+  state.priors.forEach((r,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.name}</td>
+      <td><input type="number" step="0.01" value="${r.p}" data-i="${i}" data-f="p"/></td>
+      <td><input type="number" step="0.1" value="${r.lrDelta}" data-i="${i}" data-f="lrDelta"/></td>
+      <td><input type="number" step="0.01" value="${r.volMul}" data-i="${i}" data-f="volMul"/></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("change", e=>{
+      const i = +e.target.dataset.i;
+      const f = e.target.dataset.f;
+      let v = parseFloat(e.target.value);
+      if(Number.isNaN(v)) v = 0;
+      state.priors[i][f] = v;
+    });
+  });
 }
-refreshUI();
+renderPriorTable();
 
-$("#regime").addEventListener("change", e=>{
-  state.regime = e.target.value;
-  refreshUI();
+function strategyWeights(){
+  const price = $("price").value;       // cheap/mid/expensive
+  const uw = $("uw").value;             // loose/neutral/strict
+  const ch = $("channel").value;        // agent/balanced/digital
+  const ads = $("ads").value;           // low/mid/high
+
+  // Başlangıç tüm olay ağırlıkları 1.0
+  const w = {normal:1, pricewar:1, cat:1, pr:1};
+
+  // Fiyat etkisi
+  if(price==="cheap"){ w.pricewar *= 1.35; w.normal *= 0.9; }
+  if(price==="expensive"){ w.pricewar *= 0.8; w.normal *= 1.1; }
+
+  // UW etkisi
+  if(uw==="loose"){ w.cat *= 1.25; w.normal *= 0.95; }
+  if(uw==="strict"){ w.cat *= 0.85; w.normal *= 1.05; }
+
+  // Kanal etkisi
+  if(ch==="digital"){ w.pr *= 1.05; w.normal *= 0.98; }
+  if(ch==="agent"){ w.pr *= 0.95; w.normal *= 1.02; }
+
+  // Reklam & imaj etkisi
+  if(ads==="high"){ w.pr *= 0.85; w.normal *= 1.05; }
+  if(ads==="low"){ w.pr *= 1.15; w.normal *= 0.95; }
+
+  return w;
+}
+
+function computePosterior(){
+  const w = strategyWeights();
+  // p_post ∝ p_prior * w  (sonra normalize)
+  let sum = 0;
+  const post = state.priors.map(r=>{
+    const weight = w[r.key] ?? 1;
+    const raw = Math.max(0, r.p) * Math.max(0.0001, weight);
+    sum += raw;
+    return {...r, raw, weight};
+  });
+  state.posteriors = post.map(x=>({
+    key:x.key, name:x.name,
+    p: (sum>0? x.raw/sum : 0),
+    lrDelta: x.lrDelta,
+    volMul: x.volMul,
+    note: `prior×w = ${(x.p*100).toFixed(1)}% | w=${x.weight.toFixed(2)}`
+  }));
+  renderPosterior();
+}
+
+function renderPosterior(){
+  const tb = $("postTbl").querySelector("tbody");
+  tb.innerHTML = "";
+  state.posteriors.forEach(r=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r.name}</td>
+      <td>${r.p.toFixed(3)}</td>
+      <td>${r.lrDelta}</td>
+      <td>${r.volMul.toFixed(2)}</td>
+      <td class="muted">${r.note}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+$("posteriorBtn").addEventListener("click", computePosterior);
+
+// JSON kaydet/yükle
+$("savePriors").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state.priors, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "priors.json"; a.click();
+  URL.revokeObjectURL(url);
 });
-$("#tax").addEventListener("change", e=>{
-  state.taxRate = parseFloat(e.target.value);
+$("loadPriors").addEventListener("change", async e=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const txt = await f.text();
+  const arr = JSON.parse(txt);
+  if(Array.isArray(arr)&&arr.every(o=>o.key&&typeof o.p==="number")){
+    state.priors = arr;
+    renderPriorTable();
+  } else alert("Geçersiz priors.json");
 });
 
-// Olay çek
-$("#btnRoll").addEventListener("click", ()=>{
-  if(state.locked){return;}
-  // Stratejileri oku
-  const pr = $("#pricing").value;
-  const uw = $("#uw").value;
-  const ch = $("#channel").value;
-  const ad = $("#ads").value;
 
-  // Olay seç (weighted random)
-  const ev = weightedPick(CONFIG.events);
+/** --- yardımcılar --- **/
+function pct(n){return (n*100).toFixed(1)+"%";}
+function band(cap){
+  if(cap>=100) return "H";
+  if(cap>=75)  return "M";
+  if(cap>=50)  return "L";
+  return "Z";
+}
+function commissionPct(channel){
+  if(channel==="agent") return +$("cAgent").value/100;
+  if(channel==="digital") return +$("cDigital").value/100;
+  return +$("cBalanced").value/100;
+}
+function adsPct(level){
+  if(level==="low") return +$("aLow").value/100;
+  if(level==="high") return +$("aHigh").value/100;
+  return +$("aMid").value/100;
+}
+function priceVolume(price){
+  if(price==="cheap") return 1.30;
+  if(price==="expensive") return 0.85;
+  return 1.10;
+}
+function uwLRDelta(uw){
+  if(uw==="loose") return +8;
+  if(uw==="strict") return -6;
+  return 0;
+}
 
-  // GWP ve LR oluştur
-  const base = CONFIG.baseGWP;
-  const mixVol = CONFIG.pricing[pr].volMul * CONFIG.events.find(e=>e.name===ev.name).volMul
-               * CONFIG.ads[ad].demand * CONFIG.channel[ch].demand;
-  let gwp = base * mixVol;
+/** --- yıl simülasyonu --- **/
+function runYear(){
+  if(state.posteriors.length===0) computePosterior();
 
-  let lr = CONFIG.baseLR
-         + CONFIG.pricing[pr].lrAdd
-         + CONFIG.uw[uw].lrAdd
-         + ev.lrAdd;
+  // girişler
+  const baseG = +$("baseGwp").value;
+  const baseLR = +$("baseLR").value/100;
+  const ch = $("channel").value;
+  const adsLevel = $("ads").value;
+  const price = $("price").value;
+  const uw = $("uw").value;
+  const tax = +$("tax").value/100;
+  const reserve = $("reserve").value;
+  const regime = $("regime").value;
 
-  lr = clamp(lr, 0.40, 1.50); // mantıklı sınırlar
-  const commRate = CONFIG.channel[ch].comm;
-  const adRate = CONFIG.ads[ad].rate;
+  const vol = priceVolume(price);
+  const com = commissionPct(ch);
+  const adp = adsPct(adsLevel);
+  const uwAdj = uwLRDelta(uw)/100;
 
-  // Yıl içi ödemeler ve rezerv bazı
-  const expectedLoss = gwp * lr;
-  const paidLoss = expectedLoss * CONFIG.paidRatio;
-  const reserveBase = expectedLoss * (1 - CONFIG.paidRatio);
+  const reserveK = reserve==="conservative"?1.20:reserve==="aggressive"?0.80:1.00;
 
-  // İmaj güncelleme (hafif)
-  state.brandScore += CONFIG.ads[ad].brand;
-  if(ev.brand=="+") state.brandScore++;
-  if(ev.brand=="-") state.brandScore--;
+  const tbody = $("resultTbl").querySelector("tbody");
+  tbody.innerHTML = "";
 
-  // Geçici yıl verilerini tut
-  state.current = {
-    pr, uw, ch, ad, ev: ev.name,
-    gwp, lr, commRate, adRate,
-    paidLoss, reserveBase
-  };
-  state.locked = true;
-  // UI güncelle
-  $("#eventPill").textContent = "Olay: " + ev.name;
-  $("#mGwp").textContent = gwp.toFixed(2);
-  $("#mLR").textContent = (lr*100).toFixed(1) + "%";
-  $("#mComm").textContent = (commRate*100).toFixed(1) + "%";
-  $("#mAds").textContent = (adRate*100).toFixed(1) + "%";
-  $("#mPaid").textContent = paidLoss.toFixed(2);
-  $("#mResBase").textContent = reserveBase.toFixed(2);
-  refreshUI();
-});
+  let expectedNetAfterTax = 0;
+  let expectedNewCap = 0;
 
-// Yılı kapat (rezerv + vergi + sermaye)
-$("#btnClose").addEventListener("click", ()=>{
-  if(!state.locked || !state.current) return;
-  const pol = $("#reservePolicy").value;
-  const rp = CONFIG.reservePolicy[pol];
+  state.posteriors.forEach(ev=>{
+    const p = ev.p;
 
-  // Bileşenler
-  const c = state.current;
-  const reserve = c.reserveBase * rp.mult;
-  const commission = c.gwp * c.commRate;
-  const ads = c.gwp * c.adRate;
+    const GWP = baseG * vol * ev.volMul;
+    const LR = Math.min(1, Math.max(0, baseLR + uwAdj + ev.lrDelta/100));
+    const claimsPaid = GWP * LR;
 
-  // Net kâr VÖ
-  const preTax = c.gwp - (c.paidLoss + reserve) - commission - ads;
-  const tax = preTax>0 ? preTax * state.taxRate : 0;
-  const postTax = preTax - tax;
-  state.capital += postTax;
+    // Rezerv: yıl sonu, hasar ödemesine göre katsayı
+    const reserveAmt = claimsPaid * (reserveK - 1 + 1); // = claimsPaid * reserveK
 
-  // Rejim testi
-  const verdict = CONFIG.regimes[state.regime].test(state.capital, state.lowTrailPrev);
+    const comm = GWP * com;
+    const ads = GWP * adp;
 
-  // Medium rejimde trail bayrağını güncelle
-  if(state.regime==="medium"){
-    if(state.capital < 75){
-      // bu yıl <75 ise (ikinci darbe ise FAIL zaten yukarıda verildi)
-      state.lowTrailPrev = (verdict!=="OK"); // WARN → true, FAIL → true
-    } else {
-      state.lowTrailPrev = false;
-    }
-  }
+    const preTax = GWP - (claimsPaid + reserveAmt) - comm - ads;
+    const taxAmt = preTax>0 ? preTax*tax : 0;
+    const afterTax = preTax - taxAmt;
 
-  // Log satırı
-  appendLog({
-    year: state.year,
-    ev: c.ev, pr: c.pr, uw: c.uw, ch: c.ch, ad: c.ad, pol: rp.label,
-    gwp: c.gwp, lr: c.lr, paid: c.paidLoss, res: reserve, comm: commission, ads,
-    preTax, tax, postTax, capital: state.capital
+    expectedNetAfterTax += p * afterTax;
+    expectedNewCap += p * (state.capital + afterTax);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${ev.name}</td>
+      <td>${p.toFixed(3)}</td>
+      <td>${GWP.toFixed(2)}</td>
+      <td>${pct(LR)}</td>
+      <td>${pct(com)}</td>
+      <td>${pct(adp)}</td>
+      <td class="${preTax>=0?'ok':'bad'}">${preTax.toFixed(2)}</td>
+      <td>${taxAmt.toFixed(2)}</td>
+      <td class="${afterTax>=0?'ok':'bad'}">${afterTax.toFixed(2)}</td>
+      <td>${(state.capital + afterTax).toFixed(2)}</td>`;
+    tbody.appendChild(tr);
   });
 
-  // Durum & UI
-  const statusEl = $("#kStatus");
-  if(verdict==="FAIL"){
-    statusEl.textContent = "İflas!";
-    $("#kpiStatus").className = "kpi bad";
-    disableAll();
-  } else {
-    statusEl.textContent = verdict==="WARN" ? "Uyarı: Sermaye eşiğinin altında" : "Yıl kapandı";
-    $("#kpiStatus").className = "kpi " + (verdict==="WARN" ? "warn" : "ok");
-    $("#btnNext").disabled = false; // yeni yıla geçilebilir
+  // beklenen değerler
+  const newCap = expectedNewCap; // zaten p ile ağırlıklı
+  const newBand = band(newCap);
+  let fail = false, warn=false;
+  if(regime==="hard"){ if(newCap<100) fail=true; }
+  if(regime==="medium"){
+    if(newCap<50){ if(state.warned) fail=true; else warn=true; }
   }
+  if(regime==="easy"){ if(newCap<50) fail=true; }
 
-  state.locked = false;   // kapanış tamam
-  state.current = null;
-  refreshUI();
+  let regMsg = "";
+  if(fail) regMsg = "❌ İflas koşulu tetiklendi.";
+  else if(warn){ regMsg = "⚠️ Uyarı: Z bandına indin. Gelecek yıl toparlanmazsa iflas.";
+                 state.warned = true; }
+  else { regMsg = "✅ Regülasyon koşulları sağlandı."; state.warned = false; }
+
+  $("totals").innerHTML =
+`Başlangıç sermayesi: ${state.capital.toFixed(2)}
+Beklenen Net Kâr (Vergi Sonrası): ${expectedNetAfterTax.toFixed(2)}
+Beklenen yıl sonu sermaye: ${newCap.toFixed(2)}  | Band: ${newBand}
+Rejim: ${regime.toUpperCase()}  → ${regMsg}`;
+
+  // yılı kapat
+  state.capital = newCap;
+}
+
+$("runYear").addEventListener("click", runYear);
+$("resetYear").addEventListener("click", ()=>{
+  state.capital = +$("capitalStart").value;
+  state.warned = false;
+  $("resultTbl").querySelector("tbody").innerHTML = "";
+  $("totals").textContent = "";
 });
 
-// Yeni yıla geç
-$("#btnNext").addEventListener("click", ()=>{
-  if($("#btnNext").disabled) return;
-  state.year += 1;
-  $("#btnNext").disabled = true;
-  $("#eventBox").style.display = "none";
-  $("#kStatus").textContent = "Yeni yıl";
-  $("#kpiStatus").className = "kpi";
-  refreshUI();
+
+/** --- Örneklem uzayı / CSV --- **/
+function toCSV(rows){
+  const header = ["Olay","p(post)","LR_Delta","HacimMul","GWP_mul(all)","Ağırlık Notu"];
+  const lines = [header.join(",")];
+  rows.forEach(r=>lines.push([r.name, r.p.toFixed(4), r.lrDelta, r.volMul.toFixed(2), r.volAll.toFixed(2), `"${r.note}"`].join(",")));
+  return lines.join("\n");
+}
+$("sampleSpace").addEventListener("click", ()=>{
+  if(state.posteriors.length===0) computePosterior();
+  const vol = priceVolume($("price").value);
+  const rows = state.posteriors.map(r=>({...r, volAll: r.volMul * vol}));
+  const csv = toCSV(rows);
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download="orneklem_uzayi.csv"; a.click();
+  URL.revokeObjectURL(url);
 });
 
-// Sıfırla
-$("#btnReset").addEventListener("click", ()=>{
-  state = {
-    year:1, capital:100, brandScore:0, lowTrailPrev:false,
-    regime: $("#regime").value || "medium",
-    taxRate: parseFloat($("#tax").value || CONFIG.tax),
-    locked:false, current:null
-  };
-  logBody.innerHTML = "";
-  $("#eventBox").style.display = "none";
-  $("#kStatus").textContent = "Başlangıç";
-  $("#kpiStatus").className = "kpi";
-  $("#btnNext").disabled = true;
-  refreshUI();
-});
-
-/* ====== yardımcılar ====== */
-function weightedPick(arr){
-  const r = Math.random();
-  let acc = 0;
-  for(const x of arr){
-    acc += x.p;
-    if(r <= acc) return x;
-  }
-  return arr[arr.length-1];
-}
-function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-function appendLog(row){
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${row.year}</td>
-    <td>${row.ev}</td>
-    <td>${labelPricing(row.pr)}</td>
-    <td>${labelUW(row.uw)}</td>
-    <td>${labelChannel(row.ch)}</td>
-    <td>${labelAds(row.ad)}</td>
-    <td>${row.pol}</td>
-    <td>${fmt(row.gwp)}</td>
-    <td>${(row.lr*100).toFixed(1)}%</td>
-    <td>${fmt(row.paid)}</td>
-    <td>${fmt(row.res)}</td>
-    <td>${fmt(row.comm)}</td>
-    <td>${fmt(row.ads)}</td>
-    <td>${fmt(row.preTax)}</td>
-    <td>${fmt(row.tax)}</td>
-    <td>${fmt(row.postTax)}</td>
-    <td>${fmt(row.capital)}</td>
-  `;
-  logBody.appendChild(tr);
-}
-function fmt(x){ return (x>=0? "" : "−") + Math.abs(x).toFixed(2); }
-function labelPricing(k){ return k==="cheap"?"Ucuz":k==="mid"?"Orta":"Pahalı"; }
-function labelUW(k){ return k==="loose"?"Gevşek":k==="mid"?"Orta":"Sıkı"; }
-function labelChannel(k){ return k==="agent"?"Acente":k==="balanced"?"Dengeli":"Dijital"; }
-function labelAds(k){ return k==="low"?"Düşük":k==="mid"?"Orta":"Yüksek"; }
-function disableAll(){
-  ["btnRoll","btnClose","btnNext"].forEach(id=>{ const e=$( "#"+id ); e.disabled=true; });
-}
+// İlk posterior hesapla
+computePosterior();
 </script>
 </body>
 </html>
