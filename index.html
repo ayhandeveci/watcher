@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Watcher — Bayes Rezerv Oyunu</title>
+<title>Watcher — Bayes Rezerv Oyunu (EP=50%)</title>
 <style>
   :root{--bg:#0f172a;--panel:#0b1023;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}
   *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
@@ -41,14 +41,14 @@
 </style>
 </head>
 <body>
-<header><h1>🕹️ Watcher — Bayes Rezerv Oyunu</h1></header>
+<header><h1>🕹️ Watcher — Bayes Rezerv Oyunu (EP=50%)</h1></header>
 
 <div class="wrap">
 
-  <!-- ÜST SATIR: 4 panel -->
+  <!-- ÜST: 4 panel -->
   <section class="grid cols-4">
 
-    <!-- 1) Konfig + Portföy + Olay -->
+    <!-- 1) Konfig + Portföy -->
     <div class="card">
       <h2>Oyun Konfigürasyonu</h2>
       <div class="mono">
@@ -90,7 +90,7 @@
       <div id="midInfo" class="mono" style="margin-top:6px"></div>
     </div>
 
-    <!-- 2) Yıl ortası paneli (Rezerv) -->
+    <!-- 2) Yıl ortası (Rezerv) -->
     <div class="card">
       <h2>2) Yıl Ortası — Rezerv Kararı</h2>
       <p class="muted">Olaydan sonra aktif olur. Önce incurred sonucu tabloda görünür.</p>
@@ -99,7 +99,7 @@
       <div id="midPanel" class="mono"></div>
     </div>
 
-    <!-- 3) Yıl sonu paneli (Temettü) -->
+    <!-- 3) Yıl sonu (Temettü) -->
     <div class="card">
       <h2>3) Yıl Sonu — Temettü</h2>
       <p class="muted">Rezerv seçiminden sonra aktif olur.</p>
@@ -108,7 +108,7 @@
       <div id="endPanel" class="mono"></div>
     </div>
 
-    <!-- 4) CEO/Sermayedar paneli -->
+    <!-- 4) CEO/Sermayedar -->
     <div class="card">
       <h2>4) Sermayedar / CEO Paneli</h2>
       <div id="ceoFace" class="face">🙂</div>
@@ -120,18 +120,16 @@
 
   </section>
 
-  <!-- ALT SATIR: Yıl Sonuçları Tablosu -->
+  <!-- ALT: Yıl Sonuçları -->
   <section class="card">
     <h2>Yıl Sonuçları</h2>
     <div style="max-height:460px;overflow:auto;border:1px solid #223047;border-radius:10px">
       <table id="yearsTbl">
         <thead>
           <tr>
-            <th>Yıl</th><th>Olay</th><th>GWP</th>
-            <th>incLR</th><th>realLR</th><th>LR*</th>
+            <th>Yıl</th><th>Olay</th><th>GWP</th><th>incLR</th><th>realLR</th><th>LR*</th>
             <th>Ödenen</th><th>Muallak</th><th>Seçilen Rezerv</th><th>P&L Rezerv</th>
-            <th>Kom.</th><th>PR</th>
-            <th>VÖ</th><th>Vergi</th><th>VS</th><th>Temettü</th><th>Yıl Sonu Sermaye</th><th>Band</th>
+            <th>Kom.</th><th>PR</th><th>VÖ</th><th>Vergi</th><th>VS</th><th>Temettü</th><th>Yıl Sonu Sermaye</th><th>Band</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -146,7 +144,7 @@
 
 <script>
 (function(){
-  // ===== Helpers =====
+  // ---------- helpers ----------
   const $=id=>document.getElementById(id);
   const showModal=html=>{ $("modalBox").innerHTML=html; $("modal").style.display="flex"; };
   const closeModal=()=>{ $("modal").style.display="none"; };
@@ -157,7 +155,7 @@
   const zAlpha=a=>a>=0.975?1.96:a>=0.95?1.6449:a>=0.90?1.2816:0.8416;
   const band=cap=>cap>=100?"H":cap>=75?"M":cap>=50?"L":"Z";
 
-  // ===== Config & State =====
+  // ---------- config & state ----------
   const CONFIG = {
     capital0: 100,
     taxRate: 0.20,
@@ -166,41 +164,47 @@
     tau_c: 0.08,
     tau_kappa: {normal:1.00, pricewar:1.10, cat:1.30, pr:1.05},
     lrBounds: [0.40,1.30],
+    earnedShareMid: 0.50, // YIL ORTASI: EP = GWP * 0.50
   };
   const state = {
     year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100,
-    event:null, cache:null
+    event:null, cache:null, currentRow:null
   };
 
+  // olay seti (EP olaydan bağımsız!):
   const EVENTS = [
-    {key:"normal",   name:"Normal",       p:0.50,   mu:0.65, sigmaMul:1.00, volMul:1.00, paidShare:0.60},
-    {key:"pricewar", name:"Fiyat Savaşı", p:0.1667, mu:0.70, sigmaMul:1.05, volMul:1.05, paidShare:0.55},
-    {key:"cat",      name:"CAT",          p:0.1667, mu:0.80, sigmaMul:1.20, volMul:1.00, paidShare:0.40},
-    {key:"pr",       name:"PR Krizi",     p:0.1667, mu:0.66, sigmaMul:1.02, volMul:0.95, paidShare:0.50},
+    {key:"normal",   name:"Normal",       p:0.50,   mu:0.65, sigmaMul:1.00, volMul:1.00, paidShare:0.60,
+     blurb:"Her şey beklenildiği gibi gidiyor. Ortalama LR civarı ve oynaklık normal."},
+    {key:"pricewar", name:"Fiyat Savaşı", p:0.1667, mu:0.70, sigmaMul:1.05, volMul:1.05, paidShare:0.55,
+     blurb:"Agresif fiyat rekabeti: prim hacmi artar, LR ortalaması yükselir; oynaklık biraz artar."},
+    {key:"cat",      name:"CAT",          p:0.1667, mu:0.80, sigmaMul:1.20, volMul:1.00, paidShare:0.40,
+     blurb:"Felaket yılı: tail ağır. LR ortalaması yüksek, belirsizlik belirgin. Ödenen/EP gelişimi daha yavaş."},
+    {key:"pr",       name:"PR Krizi",     p:0.1667, mu:0.66, sigmaMul:1.02, volMul:0.95, paidShare:0.50,
+     blurb:"İtibar darbesi: hacim bir miktar düşebilir; hasar ortalaması çok bozulmaz ama oynaklık hafif artar."},
   ];
 
-  // σ katkıları
+  // sigma katkıları ve GWP çarpanları
   const dPrice=v=>v==="cheap"?+0.025:v==="exp"?-0.015:0;
   const dUW=v=>v==="loose"?+0.035:v==="strict"?-0.025:0;
   const dChannel=v=>v==="agent"?+0.008:v==="digital"?-0.004:0;
   const dAds=v=>v==="low"?+0.004:v==="high"?-0.004:0;
 
-  // GWP çarpanları
   const fPrice=v=>v==="cheap"?1.30:v==="exp"?0.85:1.10;
   const fUW=v=>v==="loose"?1.10:v==="strict"?0.90:1.00;
   const fChannel=v=>v==="agent"?1.10:v==="digital"?0.95:1.00;
   const fAds=level=>{const L={low:0,mid:1,high:2}[level];return 1+0.08*L-0.02*L*L;};
 
-  // Masraflar (sabit oran)
+  // masraf oranları
   const commPct=ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12;
   const adsPct=level=>level==="low"?0.01:level==="high"?0.06:0.03;
 
-  // Regülasyon (medium)
+  // regülasyon (medium)
   function regulationCheck(newCap){
     if(newCap<50){ if(!state.warned){state.warned=true; return {fail:false,warn:true};} return {fail:true,warn:false}; }
     return {fail:false,warn:false};
   }
 
+  // CEO panel
   function setFace(r){$("ceoFace").textContent = r<0.10 ? "☹️" : (r<0.15 ? "😐" : "🙂");}
   function renderCEO(note=""){
     const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
@@ -211,12 +215,31 @@
   }
   renderCEO(`Oyun hazır. "Yılı Başlat" → "Olayı Çek".`);
 
-  // ==== Butonlar ====
+  // tablo yardımcıları (adım adım hücre güncelle)
+  function ensureRowForYear(y){
+    const tb = document.querySelector("#yearsTbl tbody");
+    let tr = tb.querySelector(`tr[data-year="${y}"]`);
+    if(!tr){
+      tr = document.createElement("tr");
+      tr.dataset.year = y;
+      tr.innerHTML = "<td>"+y+"</td>"+("<td>—</td>".repeat(17));
+      tb.prepend(tr);
+    }
+    state.currentRow = tr;
+    return tr;
+  }
+  function setCell(idx, html){ // 0-based: Year=0
+    if(!state.currentRow) return;
+    const tds = state.currentRow.children;
+    if(tds[idx]) tds[idx].innerHTML = html;
+  }
+
+  // ==== butonlar ====
   $("resetGame").addEventListener("click", ()=>{
-    Object.assign(state,{year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100, event:null, cache:null});
+    Object.assign(state,{year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100, event:null, cache:null, currentRow:null});
     $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
     $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=true;
-    const tb=document.querySelector("#yearsTbl tbody"); if(tb) tb.innerHTML="";
+    document.querySelector("#yearsTbl tbody").innerHTML="";
     renderCEO("Oyun sıfırlandı.");
   });
 
@@ -225,6 +248,10 @@
     state.event=null; state.cache=null;
     $("eventBadge").innerText="Olay: —"; $("midInfo").innerText=`Yıl ${state.year} başladı. Sermaye: ${fmt(state.capital)}.`;
     $("drawEvent").disabled=false; $("reserveBtn").disabled=true; $("divBtn").disabled=true;
+
+    // tablo: yeni yıl için boş satır ekle
+    ensureRowForYear(state.year);
+    for(let i=1;i<=17;i++) setCell(i,"—");
   });
 
   $("drawEvent").addEventListener("click", ()=>{
@@ -234,41 +261,68 @@
       for(const e of EVENTS){acc+=e.p;if(u<=acc){ev=e;break;}}
       state.event=ev;
       $("eventBadge").innerHTML=`Olay: <span class="pill">${ev.name}</span>`;
-      $("modalBox").innerHTML = `<div><b>Bu yılın olayı:</b> <span class="pill">${ev.name}</span><div class="hr"></div><button class="btn primary" id="okEv">Devam</button></div>`;
+      $("modalBox").innerHTML = `
+        <div>
+          <b>Bu yılın olayı:</b> <span class="pill">${ev.name}</span>
+          <div class="hr"></div>
+          <div class="muted">
+            ${ev.blurb}<br>
+            <span class="mono">Not:</span> Yıl ortası gözleminde <b>EP = GWP × 0.50</b> kullanılır.
+          </div>
+          <div class="hr"></div>
+          <button class="btn primary" id="okEv">Devam</button>
+        </div>`;
       $("okEv").onclick=()=>{ closeModal(); afterEventIncurred(); };
     }, 5000);
   });
 
   function afterEventIncurred(){
-    const ev = state.event; if(!ev){return;}
+    const ev = state.event; if(!ev) return;
     const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
 
+    // GWP ve EP_mid (EP sabit: 50%)
     const GWP = CONFIG.baseGwp * fPrice(price) * fUW(uw) * fChannel(ch) * fAds(ads) * ev.volMul;
+    const EP_mid = GWP * CONFIG.earnedShareMid;
 
+    // PRIOR σ
     let sigma_prior = CONFIG.sigma0 + dPrice(price)+dUW(uw)+dChannel(ch)+dAds(ads);
     sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax) * ev.sigmaMul;
     sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax);
 
     const mu_event = ev.mu;
 
+    // gözlem: incLR ~ N(mu, sigma_pre) → incurred_to_date = EP_mid * incLR
     const sigma_pre = clamp(0.7*sigma_prior, CONFIG.sigmaMin*0.9, CONFIG.sigmaMax);
     const lr_inc = rngTNormal(mu_event, sigma_pre, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-    const incurredAmt = GWP * lr_inc;
-    const paid = incurredAmt * ev.paidShare;
-    const outstanding = incurredAmt - paid;
+    const incurred_to_date = EP_mid * lr_inc;
 
+    // paid/outstanding (olay bazlı oran)
+    const paid = incurred_to_date * ev.paidShare;
+    const outstanding = incurred_to_date - paid;
+
+    // Bayes: τ ve posterior (gözlem = incLR)
     const tau = CONFIG.tau_c * CONFIG.tau_kappa[ev.key] / Math.sqrt(ev.paidShare);
     const var_prior = sigma_prior*sigma_prior, var_tau = tau*tau;
     const var_post = 1/(1/var_prior + 1/var_tau);
     const sigma_post = Math.sqrt(var_post);
     const mu_post = var_post*(mu_event/var_prior + lr_inc/var_tau);
 
-    state.cache = {GWP, mu_post, sigma_post, lr_inc, paid, outstanding, ev, ch, ads};
-    $("midInfo").innerText = `GWP=${fmt(GWP)} | incurred LR=${(lr_inc*100).toFixed(1)}% → Panel 2'den rezerv yaklaşımı seçin.`;
+    // cache & paneller
+    state.cache = {GWP, EP_mid, mu_post, sigma_post, lr_inc, paid, outstanding, ev, ch, ads};
+    $("midInfo").innerText = `GWP=${fmt(GWP)} | EP(50%)=${fmt(EP_mid)} | incurred LR=${(lr_inc*100).toFixed(1)}% → Panel 2'den rezerv yaklaşımı seçin.`;
     $("midPanel").innerText = `Ödenen=${fmt(paid)} | Muallak=${fmt(outstanding)} | Posterior σ=${sigma_post.toFixed(3)}`;
     $("reserveBtn").disabled=false; $("drawEvent").disabled=true;
+
+    // TABLO: olay sonrası ilk doldurmalar
+    ensureRowForYear(state.year);
+    setCell(1, ev.name);                  // Olay
+    setCell(2, fmt(GWP));                 // GWP
+    setCell(3, (lr_inc*100).toFixed(1)+'%'); // incLR (EP bazlı)
+    setCell(6, fmt(paid));                // Ödenen
+    setCell(7, fmt(outstanding));         // Muallak
   }
 
+  // Rezerv seçimi
   $("reserveBtn").addEventListener("click", ()=>{
     if(!state.cache){alert("Önce olayı çekin.");return;}
     showModal(`
@@ -287,13 +341,14 @@
   });
 
   function applyReserve(choice){
-    const k = state.cache; if(!k){return;}
+    const k = state.cache; if(!k) return;
     const alpha = choice==="low"?0.80:choice==="high"?0.95:0.90;
     const zq = zAlpha(alpha);
     const lr_star = clamp(k.mu_post + zq*k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
 
+    // Real LR posterior’dan
     const lr_real = rngTNormal(k.mu_post, k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-    const realClaims = k.GWP * lr_real;
+    const realClaims = k.GWP * lr_real; // yıl sonu toplam claims ~ GWP*LR_real
 
     const chosenReserve = Math.max(0, k.GWP*lr_star - (k.paid+k.outstanding));
     const neededReserve = Math.max(0, realClaims - k.paid);
@@ -307,10 +362,16 @@
     const afterTax = preTax - tax;
 
     state.cache = {...k, choice, lr_star, lr_real, realClaims, chosenReserve, neededReserve, finalReserve, comm, adsCost, preTax, tax, afterTax};
+
     $("endPanel").innerText = `VÖ=${fmt(preTax)} | Vergi=${fmt(tax)} | VS=${fmt(afterTax)} → Panel 3'ten temettü seçin.`;
     $("divBtn").disabled=false; $("reserveBtn").disabled=true;
+
+    // TABLO: rezerv sonrası kolonlar
+    setCell(5, (lr_star*100).toFixed(1)+'%');   // LR*
+    setCell(8, fmt(chosenReserve));             // Seçilen Rezerv
   }
 
+  // Temettü
   $("divBtn").addEventListener("click", ()=>{
     const k = state.cache; if(!k){alert("Önce rezerv seçin.");return;}
     if(k.afterTax<=0){
@@ -335,8 +396,9 @@
   });
 
   function closeYear(divRate){
-    const k = state.cache; if(!k){return;}
-    const dividend = k.afterTax>0 ? k.afterTax*divRate : 0;
+    const k = state.cache; if(!k) return;
+
+    const dividend   = k.afterTax>0 ? k.afterTax*divRate : 0;
     const yearEndCap = state.capital + k.afterTax - dividend;
 
     const reg = regulationCheck(yearEndCap);
@@ -348,22 +410,23 @@
 
     const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
     renderCEO();
+
+    // TABLO: yıl kapanışı kolonları
+    setCell(4, (k.lr_real*100).toFixed(1)+'%'); // realLR
+    setCell(9, fmt(k.finalReserve));            // P&L Rezerv
+    setCell(10, fmt(k.comm));                   // Kom.
+    setCell(11, fmt(k.adsCost));                // PR
+    setCell(12, (k.preTax>=0?'<span class="ok">':'<span class="bad">')+fmt(k.preTax)+'</span>');
+    setCell(13, fmt(k.tax));
+    setCell(14, (k.afterTax>=0?'<span class="ok">':'<span class="bad">')+fmt(k.afterTax)+'</span>');
+    setCell(15, fmt(dividend));
+    setCell(16, fmt(yearEndCap));
+    setCell(17, band(yearEndCap));
+
     if(state.year>=2 && ratio<0.10){
       showModal(`<div><b>CEO işten çıkarıldı.</b><div class="hr"></div><div class="mono">Sebep: 2+ yıl sonunda (Kümül. Temettü / Sermaye) < %10</div><div class="hr"></div><button class="btn" id="okFired">Tamam</button></div>`);
       $("okFired").onclick=()=>closeModal();
-    }
-
-    const tr=document.createElement("tr");
-    tr.innerHTML = `
-      <td>${state.year}</td><td>${k.ev.name}</td><td>${fmt(k.GWP)}</td>
-      <td>${(k.lr_inc*100).toFixed(1)}%</td><td>${(k.lr_real*100).toFixed(1)}%</td><td>${(k.lr_star*100).toFixed(1)}%</td>
-      <td>${fmt(k.paid)}</td><td>${fmt(k.outstanding)}</td><td>${fmt(k.chosenReserve)}</td><td>${fmt(k.finalReserve)}</td>
-      <td>${fmt(k.comm)}</td><td>${fmt(k.adsCost)}</td>
-      <td class="${k.preTax>=0?'ok':'bad'}">${fmt(k.preTax)}</td><td>${fmt(k.tax)}</td><td class="${k.afterTax>=0?'ok':'bad'}">${fmt(k.afterTax)}</td><td>${fmt(dividend)}</td>
-      <td>${fmt(yearEndCap)}</td><td>${band(yearEndCap)}</td>`;
-    const tb=document.querySelector("#yearsTbl tbody"); if(tb) tb.prepend(tr);
-
-    if(fail){
+    }else if(fail){
       showModal(`<div><b>İflas tetiklendi.</b><div class="hr"></div><button class="btn" id="okFail">Tamam</button></div>`);
       $("okFail").onclick=()=>closeModal();
     }else if(state.year>=5){
@@ -371,10 +434,10 @@
       $("okEnd").onclick=()=>closeModal();
     }
 
+    // yeni yıla hazırlık
     state.year += 1;
     state.event=null; state.cache=null;
     $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
-
     $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=false;
   }
 })();</script>
