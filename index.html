@@ -27,6 +27,8 @@
   .modal .box{background:#111827;padding:16px;border-radius:12px;width:90%;max-width:600px}
   .choices{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .choices .btn{flex:1}
+  .spinner{width:28px;height:28px;border:3px solid #334155;border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -99,7 +101,7 @@ const CONFIG={capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedSha
 // State
 const state={year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, cache:null};
 
-// Olay seti (olasılıkları değiştirmedim!)
+// Olay seti (olasılıkları değiştirmedim)
 const EVENTS=[
  {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.6,blurb:"Her şey normal."},
  {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,blurb:"Agresif fiyat rekabeti."},
@@ -123,21 +125,25 @@ $("startYear").onclick=()=>{
   state.cache=null;
 };
 
-// Olay çek
+// Olay çek (5 saniye zar atılıyor)
 $("drawEvent").onclick=()=>{
-  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
-  $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
-  const GWP=CONFIG.baseGwp;
-  const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
-  const earned=GWP*CONFIG.earnedShare;
-  const incurred=earned*incLR;
-  const paid=incurred*ev.paidShare;
-  const outst=incurred-paid;
-  const comm=GWP*0.12;
-  const pr=GWP*(document.getElementById("ads").value==="high"?0.08:document.getElementById("ads").value==="low"?0.03:0.05);
-  state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma};
-  $("reserveBtn").disabled=false;
-  $("midInfo").innerText=`incLR=%${fmt(incLR*100)} | Ödenen=${fmt(paid)} | Muallak=${fmt(outst)}`;
+  showModal(`<div class="spinner"></div> 🎲 Zar atılıyor...`);
+  setTimeout(()=>{
+    closeModal();
+    const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+    $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
+    const GWP=CONFIG.baseGwp;
+    const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
+    const earned=GWP*CONFIG.earnedShare;
+    const incurred=earned*incLR;
+    const paid=incurred*ev.paidShare;
+    const outst=incurred-paid;
+    const comm=GWP*0.12;
+    const pr=GWP*(document.getElementById("ads").value==="high"?0.08:document.getElementById("ads").value==="low"?0.03:0.05);
+    state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma};
+    $("reserveBtn").disabled=false;
+    $("midInfo").innerText=`incLR=%${fmt(incLR*100)} | Ödenen=${fmt(paid)} | Muallak=${fmt(outst)}`;
+  },5000);
 };
 
 // Rezerv seçimi
@@ -164,8 +170,8 @@ $("divBtn").onclick=()=>{
   const k=state.cache; if(!k)return;
   // Portföy riskine göre realLR bias
   const rScore=portfolioRiskScore($("price").value,$("uw").value,$("channel").value,$("ads").value);
-  const muAdj=k.mu_post+(0.10*rScore); // ±0.10 = ±10 puan
-  const sigmaAdj=k.sigma_post*(1+1.0*Math.abs(rScore)); // ±100% oynaklık
+  const muAdj=k.mu_post+(0.10*rScore); 
+  const sigmaAdj=k.sigma_post*(1+1.0*Math.abs(rScore)); 
   const realLR=rngTNormal(muAdj,sigmaAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
   k.realLR=realLR;
   const realNeed=k.GWP*realLR-(k.paid+k.outst);
