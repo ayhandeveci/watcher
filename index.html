@@ -3,199 +3,213 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Watcher – Yıllık Sigorta Simülasyonu (MDP)</title>
+<title>Watcher — Rezerv Devamlı | Temettü Sonrası | Vergi | Regülasyon</title>
 <style>
-  :root{--bg:#0f172a;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;}
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
-  body{margin:0;background:linear-gradient(180deg,#0b1023,#0f172a 20%,#0f172a);color:var(--ink)}
-  header{padding:20px 16px;border-bottom:1px solid #1f2937;position:sticky;top:0;background:#0f172a;z-index:9}
-  h1{margin:0;font-size:20px}
-  .wrap{max-width:1200px;margin:0 auto;padding:16px;display:grid;gap:16px}
-  .grid{display:grid;gap:16px}
+  :root{--bg:#0f172a;--panel:#0b1023;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8}
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  body{margin:0;background:linear-gradient(180deg,#0b1023,#0f172a 25%,#0f172a);color:var(--ink)}
+  header{position:sticky;top:0;background:#0f172a;padding:14px;border-bottom:1px solid #1f2937;z-index:5}
+  h1{margin:0;font-size:18px}
+  .wrap{max-width:1200px;margin:0 auto;padding:14px;display:grid;gap:14px}
+  .grid{display:grid;gap:14px}
   .cols-3{grid-template-columns:repeat(3,1fr)}
   .cols-2{grid-template-columns:repeat(2,1fr)}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:16px}
-  .card h2{margin:0 0 12px 0;font-size:16px}
-  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 6px}
-  select,input[type="number"],input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0b1023;color:#fff}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:14px}
+  h2{margin:0 0 10px 0;font-size:16px}
+  label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
+  select,input{width:100%;padding:9px;border-radius:10px;border:1px solid #334155;background:var(--panel);color:#fff}
   .row{display:flex;gap:8px;align-items:center}
   .row>div{flex:1}
-  .btn{appearance:none;border:1px solid #334155;background:#0b1023;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
-  .btn:hover{border-color:#475569}
+  .btn{appearance:none;border:1px solid #334155;background:var(--panel);color:#fff;border-radius:10px;padding:9px 12px;cursor:pointer}
   .btn.primary{background:var(--accent);border-color:#22d3ee;color:#04121a;font-weight:600}
-  table{width:100%;border-collapse:collapse;font-size:13px}
+  .hr{height:1px;background:#1f2937;margin:12px 0}
+  table{width:100%;border-collapse:collapse;font-size:12px}
   th,td{border-bottom:1px solid #1f2937;padding:8px;text-align:left}
   th{color:#cbd5e1}
   .muted{color:var(--muted);font-size:12px}
-  .ok{color:#22c55e}.warn{color:#fbbf24}.bad{color:#f87171}
-  .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:12px}
-  .hr{height:1px;background:#1f2937;margin:12px 0}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  .right{display:flex;justify-content:flex-end;gap:8px}
+  .ok{color:#22c55e}.bad{color:#ef4444}.warn{color:#f59e0b}
   @media(max-width:980px){.cols-3,.cols-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header><h1>🕹️ Watcher — Yıllık Sigorta Simülasyonu (vergi + rezerv + regülasyon)</h1></header>
+<header><h1>🕹️ Watcher — Rezerv Devamlı | Temettü Vergiden Sonra | Vergi | Regülasyon</h1></header>
+
 <div class="wrap">
 
-  <!-- STRATEJİLER -->
   <section class="grid cols-3">
+    <!-- Yıl başı kararları -->
     <div class="card">
       <h2>1) Yıl Başı Stratejileri</h2>
       <label>Fiyatlama</label>
       <select id="price">
         <option value="cheap">Ucuz (rekabetçi)</option>
         <option value="mid" selected>Orta</option>
-        <option value="expensive">Pahalı</option>
+        <option value="exp">Pahalı</option>
       </select>
+
       <label>Underwriting (Risk Kabul)</label>
       <select id="uw">
         <option value="loose">Gevşek</option>
-        <option value="neutral" selected>Orta</option>
+        <option value="mid" selected>Orta</option>
         <option value="strict">Sıkı</option>
       </select>
+
       <label>Satış Kanalı</label>
       <select id="channel">
         <option value="agent">Acente Ağırlıklı</option>
         <option value="balanced" selected>Dengeli</option>
         <option value="digital">Dijital Ağırlıklı</option>
       </select>
-      <label>Reklam & İmaj</label>
+
+      <label>PR / Reklam Seviyesi</label>
       <select id="ads">
         <option value="low">Düşük</option>
         <option value="mid" selected>Orta</option>
         <option value="high">Yüksek</option>
       </select>
+
       <div class="hr"></div>
+      <label>Başlangıç Sermayesi</label>
+      <input id="capitalStart" type="number" value="100"/>
+
+      <label>Vergi Oranı (%)</label>
+      <input id="tax" type="number" value="20"/>
+
       <label>Regülasyon (Zorluk)</label>
       <select id="regime">
         <option value="easy">Easy (gevşek)</option>
         <option value="medium" selected>Medium</option>
         <option value="hard">Hard (sıkı)</option>
       </select>
-      <label>Vergi Oranı (%)</label>
-      <input id="tax" type="number" step="1" value="20"/>
-      <label>Başlangıç Sermayesi</label>
-      <input id="capitalStart" type="number" step="1" value="100"/>
+
       <div class="hr"></div>
-      <div class="right">
-        <button class="btn" id="resetYear">Yılı Sıfırla</button>
-      </div>
-      <p class="muted">Not: Stratejiler <b>eş zamanlı seçilir</b>, etkiler hesaplamada ardışık işlenir.</p>
+      <label>Temettü Oranı (% / Vergi Sonrası Kâr)</label>
+      <input id="divPayout" type="number" value="30"/>
+
+      <div class="hr"></div>
+      <button class="btn" id="resetGame">Oyunu Sıfırla</button>
+      <p class="muted">Not: Temettü her zaman <b>vergiden sonra</b> uygulanır.</p>
     </div>
 
-    <!-- PRIOR / POSTERIOR -->
+    <!-- Olaylar ve LR μ -->
     <div class="card">
-      <h2>2) Şans Olayları (Prior → Posterior)</h2>
-      <p class="muted">Prior olasılıkları ve etkileri düzenle. “Ağırlıkla & Normalize Et” ile stratejiye bağlı posterior oluştur.</p>
-      <table id="priorTbl">
-        <thead><tr><th>Olay</th><th>p (prior)</th><th>LR Δ (puan)</th><th>Hacim çarpanı</th></tr></thead>
+      <h2>2) Olay Olasılıkları & LR Ortalama (μ)</h2>
+      <p class="muted">Olasılıklar stratejiden bağımsızdır (prior sabit).</p>
+      <table id="eventTbl">
+        <thead>
+          <tr><th>Olay</th><th>p</th><th>μ (LR mean)</th><th>σ olay çarpanı</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
-      <div class="row">
-        <button class="btn" id="posteriorBtn">Stratejiye Göre Ağırlıkla & Normalize Et</button>
-        <button class="btn" id="savePriors">Priors JSON İndir</button>
-        <input type="file" id="loadPriors" accept="application/json" class="btn"/>
-      </div>
       <div class="hr"></div>
-      <h3>Posterior (kullanılacak)</h3>
-      <table id="postTbl">
-        <thead><tr><th>Olay</th><th>p (post)</th><th>LR Δ</th><th>Hacim çarpanı</th><th>Ağırlık notu</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <label>Baz GWP</label><input id="baseGwp" type="number" value="100"/>
+      <label>Baz LR (Normal yıl, μ tabanı)</label><input id="baseMu" type="number" value="65"/>
+      <label>σ₀ (baz std sapma)</label><input id="baseSigma" type="number" step="0.001" value="0.05"/>
+      <label>σ alt/üst sınır</label>
+      <div class="row"><input id="sigmaMin" type="number" step="0.001" value="0.02"/><input id="sigmaMax" type="number" step="0.001" value="0.15"/></div>
     </div>
 
-    <!-- REZERV & SİMÜLASYON -->
+    <!-- Rezerv ve modlar -->
     <div class="card">
-      <h2>3) Yıl Sonu — Rezerv Politikası</h2>
+      <h2>3) Yıl Sonu Rezerv Politikası</h2>
+      <label>Rezerv Yaklaşımı</label>
       <select id="reserve">
-        <option value="conservative">Konservatif (×1.20)</option>
-        <option value="neutral" selected>Nötr (×1.00)</option>
-        <option value="aggressive">Agresif (×0.80)</option>
+        <option value="conservative">Konservatif (α=0.95)</option>
+        <option value="neutral" selected>Nötr (α=0.90)</option>
+        <option value="aggressive">Agresif (α=0.80)</option>
       </select>
       <div class="hr"></div>
-      <h2>4) Simülasyon Parametreleri</h2>
-      <label>Baz GWP</label><input id="baseGwp" type="number" value="100"/>
-      <label>Baz LR (%)</label><input id="baseLR" type="number" value="65"/>
-      <label>Komisyon (Acente / Dengeli / Dijital) %</label>
-      <div class="row">
-        <input id="cAgent" type="number" value="18"/><input id="cBalanced" type="number" value="12"/><input id="cDigital" type="number" value="5"/>
-      </div>
-      <label>Reklam (Düşük / Orta / Yüksek) % GWP</label>
-      <div class="row">
-        <input id="aLow" type="number" value="1"/><input id="aMid" type="number" value="3"/><input id="aHigh" type="number" value="6"/>
-      </div>
+      <h3>Çalıştırma Modu</h3>
+      <select id="mode">
+        <option value="expected" selected>Beklenen Değer (olasılıkla ağırlıklı)</option>
+        <option value="single">Tek Yol Simülasyonu (rastgele olay & LR)</option>
+      </select>
       <div class="hr"></div>
-      <div class="right">
-        <button class="btn primary" id="runYear">Yılı İşlet</button>
-        <button class="btn" id="sampleSpace">Örneklem Uzayı (CSV)</button>
-      </div>
-      <p class="muted">Sonuçlar aşağıdaki tabloda ve raporda görünür.</p>
+      <button class="btn primary" id="runYear">Yılı İşlet</button>
+      <button class="btn" id="exportCSV">Sonuç CSV</button>
+      <p class="muted">Devamlı rezerv: Geçen yılın LR* − LR_real farkı, bu yıl başında release/strengthening olarak sermayeye yansıtılır.</p>
     </div>
   </section>
 
-  <!-- RAPORLAR -->
   <section class="grid cols-2">
     <div class="card">
       <h2>Yıl Sonu Hesap Özeti</h2>
       <table id="resultTbl">
-        <thead><tr><th>Olay</th><th>p</th><th>GWP</th><th>LR%</th><th>Kom%</th><th>Rek%</th><th>Net Kâr VÖ</th><th>Vergi</th><th>Net Kâr VS</th><th>Yeni Sermaye</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Olay</th><th>p</th><th>GWP</th><th>LR_real</th>
+            <th>LR*</th><th>Kom%</th><th>Rek%</th>
+            <th>Net Kâr VÖ</th><th>Vergi</th><th>Net Kâr VS</th>
+            <th>Temettü</th><th>Yıl Sonu Sermaye</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </div>
+
     <div class="card">
       <h2>Toplam / Regülasyon</h2>
       <div id="totals" class="mono"></div>
       <div class="hr"></div>
-      <h3>Yıl Akışı</h3>
+      <h3>Rezerv Hareketleri</h3>
+      <div id="reserveInfo" class="mono"></div>
+      <div class="hr"></div>
+      <h3>Akış</h3>
       <ol class="muted">
-        <li>Yıl başı: Fiyat + UW + Kanal + Reklam seçildi.</li>
-        <li>Posterior olasılıklar stratejiye göre üretildi.</li>
-        <li>Yıl sonu: Rezerv politikası uygulandı.</li>
-        <li>Vergi sonrası net kâr sermayeye eklendi, iflas kontrolü yapıldı.</li>
+        <li>Yıl başı: Fiyat + UW + Kanal + PR seçildi.</li>
+        <li>Olay (prior) → μ; strateji → σ; LR_real ~ N(μ,σ).</li>
+        <li>Yıl sonu: Rezerv politikası (α) → LR* = μ + zα·σ.</li>
+        <li>Vergi sonrası → Temettü → Sermaye; regülasyon kontrolü.</li>
+        <li>Gelecek yıl başı: (LR* - LR_real)×GWP, release/strengthening olarak sermayeye yansır.</li>
       </ol>
     </div>
-  </section>
-
-  <!-- AÇIKLAMA -->
-  <section class="card">
-    <h2>Notlar</h2>
-    <ul class="muted">
-      <li>Posterior ağırlıklandırma: strateji, olaylara <b>ağırlık</b> verir (ör. rekabetçi fiyat → “Fiyat savaşı” olayı ağırlık kazanır). Ağırlıklar normalize edilerek p(post) üretilir.</li>
-      <li>Rezerv politikası yıl sonunda seçilir ve (Hasar Ödemesi × katsayı) olarak gider yazılır.</li>
-      <li>Kombine rasyo = LR + Komisyon + Reklam (rapor tablosunda dolaylı izlenir).</li>
-    </ul>
   </section>
 
 </div>
 
 <script>
-/** --- Basit veri modeli --- **/
+// ---------- Yardımcılar ----------
+function $(id){return document.getElementById(id)}
+function pct(x){return (x*100).toFixed(1)+"%"}
+function clamp(x,a,b){return Math.max(a, Math.min(b, x))}
+function rngNormal(mu, sigma){
+  // Box-Muller
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  const z = Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  return mu + sigma*z;
+}
+const Z = {0.80:1.2816, 0.90:1.2816, 0.95:1.6449, 0.975:1.96}; // 0.90 ve 0.80 için aynı alınabilir/isteğe göre ayrıştır
+function zAlpha(alpha){ if(alpha>=0.975) return 1.96; if(alpha>=0.95) return 1.6449; if(alpha>=0.90) return 1.2816; return 0.8416; }
+
+// ---------- Durum ----------
 const state = {
-  priors: [
-    {key:"normal", name:"Normal",      p:0.60, lrDelta:0,   volMul:1.00},
-    {key:"pricewar",name:"Fiyat Savaşı",p:0.20, lrDelta:5,  volMul:1.10},
-    {key:"cat",     name:"Cat (Sel/Deprem)", p:0.15, lrDelta:12, volMul:1.00},
-    {key:"pr",      name:"PR Krizi",   p:0.05, lrDelta:1,   volMul:0.90},
-  ],
-  posteriors: [],
   capital: 100,
-  warned: false // Medium rejimde Z bandında uyarı
+  cumDividend: 0,
+  warned: false,
+  pendingReserveDelta: 0, // geçen yıldan bu yıla taşınan (LR* - LR_real)*GWP : + ise release (sermayeye ek), - ise strengthening (sermayeden düş)
+  lastYear: null,
+  // Priorlar sabit (stratejiden bağımsız)
+  events: [
+    {key:"normal", name:"Normal",     p:0.50, mu:0.65, sigmaMul:1.00},
+    {key:"pricewar",name:"Fiyat Savaşı", p:0.1667, mu:0.70, sigmaMul:1.05},
+    {key:"cat",    name:"Cat (Sel/Deprem)", p:0.1667, mu:0.80, sigmaMul:1.20},
+    {key:"pr",     name:"PR Krizi",   p:0.1667, mu:0.66, sigmaMul:1.02},
+  ],
+  rows: [] // son yılın tablo satırları (CSV için)
 };
 
-function $(id){return document.getElementById(id)}
-
-function renderPriorTable(){
-  const tb = $("priorTbl").querySelector("tbody");
+function renderEventTable(){
+  const tb = $("eventTbl").querySelector("tbody");
   tb.innerHTML = "";
-  state.priors.forEach((r,i)=>{
+  state.events.forEach((e,i)=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${r.name}</td>
-      <td><input type="number" step="0.01" value="${r.p}" data-i="${i}" data-f="p"/></td>
-      <td><input type="number" step="0.1" value="${r.lrDelta}" data-i="${i}" data-f="lrDelta"/></td>
-      <td><input type="number" step="0.01" value="${r.volMul}" data-i="${i}" data-f="volMul"/></td>`;
+      <td>${e.name}</td>
+      <td>${e.p.toFixed(4)}</td>
+      <td><input type="number" step="0.001" value="${e.mu*100}" data-i="${i}" data-f="mu"/></td>
+      <td><input type="number" step="0.01" value="${e.sigmaMul}" data-i="${i}" data-f="sigmaMul"/></td>
+    `;
     tb.appendChild(tr);
   });
   tb.querySelectorAll("input").forEach(inp=>{
@@ -203,244 +217,327 @@ function renderPriorTable(){
       const i = +e.target.dataset.i;
       const f = e.target.dataset.f;
       let v = parseFloat(e.target.value);
-      if(Number.isNaN(v)) v = 0;
-      state.priors[i][f] = v;
+      if(f==="mu"){ state.events[i].mu = (v||0)/100; }
+      else if(f==="sigmaMul"){ state.events[i].sigmaMul = v||1; }
+      renderEventTable(); // güncel değerleri göster (format)
     });
   });
 }
-renderPriorTable();
+renderEventTable();
 
-function strategyWeights(){
-  const price = $("price").value;       // cheap/mid/expensive
-  const uw = $("uw").value;             // loose/neutral/strict
-  const ch = $("channel").value;        // agent/balanced/digital
-  const ads = $("ads").value;           // low/mid/high
-
-  // Başlangıç tüm olay ağırlıkları 1.0
-  const w = {normal:1, pricewar:1, cat:1, pr:1};
-
-  // Fiyat etkisi
-  if(price==="cheap"){ w.pricewar *= 1.35; w.normal *= 0.9; }
-  if(price==="expensive"){ w.pricewar *= 0.8; w.normal *= 1.1; }
-
-  // UW etkisi
-  if(uw==="loose"){ w.cat *= 1.25; w.normal *= 0.95; }
-  if(uw==="strict"){ w.cat *= 0.85; w.normal *= 1.05; }
-
-  // Kanal etkisi
-  if(ch==="digital"){ w.pr *= 1.05; w.normal *= 0.98; }
-  if(ch==="agent"){ w.pr *= 0.95; w.normal *= 1.02; }
-
-  // Reklam & imaj etkisi
-  if(ads==="high"){ w.pr *= 0.85; w.normal *= 1.05; }
-  if(ads==="low"){ w.pr *= 1.15; w.normal *= 0.95; }
-
-  return w;
+// ---------- Strateji → σ katkıları ----------
+function sigmaDeltaPrice(val){
+  if(val==="cheap") return +0.03;
+  if(val==="exp")   return -0.02;
+  return 0.00;
+}
+function sigmaDeltaUW(val){
+  if(val==="loose") return +0.04;
+  if(val==="strict")return -0.03;
+  return 0.00;
+}
+function sigmaDeltaChannel(val){
+  if(val==="agent")    return +0.01;
+  if(val==="digital")  return -0.005;
+  return 0.00;
+}
+function sigmaDeltaAds(val){
+  if(val==="low")  return +0.005;
+  if(val==="high") return -0.005;
+  return 0.00;
+}
+function commissionPct(channel){
+  // kanca: sonra detaylandıracağız
+  if(channel==="agent") return 0.18;
+  if(channel==="digital") return 0.05;
+  return 0.12;
+}
+function adsPct(level){
+  if(level==="low") return 0.01;
+  if(level==="high") return 0.06;
+  return 0.03;
+}
+function priceVolume(price){
+  if(price==="cheap") return 1.30;
+  if(price==="exp") return 0.85;
+  return 1.10;
 }
 
-function computePosterior(){
-  const w = strategyWeights();
-  // p_post ∝ p_prior * w  (sonra normalize)
-  let sum = 0;
-  const post = state.priors.map(r=>{
-    const weight = w[r.key] ?? 1;
-    const raw = Math.max(0, r.p) * Math.max(0.0001, weight);
-    sum += raw;
-    return {...r, raw, weight};
-  });
-  state.posteriors = post.map(x=>({
-    key:x.key, name:x.name,
-    p: (sum>0? x.raw/sum : 0),
-    lrDelta: x.lrDelta,
-    volMul: x.volMul,
-    note: `prior×w = ${(x.p*100).toFixed(1)}% | w=${x.weight.toFixed(2)}`
-  }));
-  renderPosterior();
+// ---------- Rezerv α ----------
+function reserveAlpha(val){
+  if(val==="conservative") return 0.95;
+  if(val==="aggressive")   return 0.80;
+  return 0.90;
 }
 
-function renderPosterior(){
-  const tb = $("postTbl").querySelector("tbody");
-  tb.innerHTML = "";
-  state.posteriors.forEach(r=>{
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${r.name}</td>
-      <td>${r.p.toFixed(3)}</td>
-      <td>${r.lrDelta}</td>
-      <td>${r.volMul.toFixed(2)}</td>
-      <td class="muted">${r.note}</td>`;
-    tb.appendChild(tr);
-  });
-}
-
-$("posteriorBtn").addEventListener("click", computePosterior);
-
-// JSON kaydet/yükle
-$("savePriors").addEventListener("click", ()=>{
-  const blob = new Blob([JSON.stringify(state.priors, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "priors.json"; a.click();
-  URL.revokeObjectURL(url);
-});
-$("loadPriors").addEventListener("change", async e=>{
-  const f = e.target.files?.[0]; if(!f) return;
-  const txt = await f.text();
-  const arr = JSON.parse(txt);
-  if(Array.isArray(arr)&&arr.every(o=>o.key&&typeof o.p==="number")){
-    state.priors = arr;
-    renderPriorTable();
-  } else alert("Geçersiz priors.json");
-});
-
-
-/** --- yardımcılar --- **/
-function pct(n){return (n*100).toFixed(1)+"%";}
+// ---------- Regülasyon ----------
 function band(cap){
   if(cap>=100) return "H";
   if(cap>=75)  return "M";
   if(cap>=50)  return "L";
   return "Z";
 }
-function commissionPct(channel){
-  if(channel==="agent") return +$("cAgent").value/100;
-  if(channel==="digital") return +$("cDigital").value/100;
-  return +$("cBalanced").value/100;
-}
-function adsPct(level){
-  if(level==="low") return +$("aLow").value/100;
-  if(level==="high") return +$("aHigh").value/100;
-  return +$("aMid").value/100;
-}
-function priceVolume(price){
-  if(price==="cheap") return 1.30;
-  if(price==="expensive") return 0.85;
-  return 1.10;
-}
-function uwLRDelta(uw){
-  if(uw==="loose") return +8;
-  if(uw==="strict") return -6;
-  return 0;
+function regulationCheck(newCap, regime, warnedFlag){
+  if(regime==="hard"){ return {fail: newCap<100, warn:false} }
+  if(regime==="easy"){ return {fail: newCap<50, warn:false} }
+  // medium
+  if(newCap<50){ return {fail: warnedFlag, warn: !warnedFlag} }
+  return {fail:false, warn:false}
 }
 
-/** --- yıl simülasyonu --- **/
+// ---------- Yıl çalıştır ----------
 function runYear(){
-  if(state.posteriors.length===0) computePosterior();
-
-  // girişler
-  const baseG = +$("baseGwp").value;
-  const baseLR = +$("baseLR").value/100;
-  const ch = $("channel").value;
-  const adsLevel = $("ads").value;
+  // 0) Parametreler
   const price = $("price").value;
   const uw = $("uw").value;
-  const tax = +$("tax").value/100;
-  const reserve = $("reserve").value;
-  const regime = $("regime").value;
+  const channel = $("channel").value;
+  const ads = $("ads").value;
+
+  const baseG = +$("baseGwp").value || 100;
+  const baseMu = (+$("baseMu").value || 65)/100;
+  const baseSigma = +$("baseSigma").value || 0.05;
+  const sMin = +$("sigmaMin").value || 0.02;
+  const sMax = +$("sigmaMax").value || 0.15;
 
   const vol = priceVolume(price);
-  const com = commissionPct(ch);
-  const adp = adsPct(adsLevel);
-  const uwAdj = uwLRDelta(uw)/100;
+  const com = commissionPct(channel);
+  const adp = adsPct(ads);
 
-  const reserveK = reserve==="conservative"?1.20:reserve==="aggressive"?0.80:1.00;
+  const sigmaBaseAdj =
+    sigmaDeltaPrice(price) +
+    sigmaDeltaUW(uw) +
+    sigmaDeltaChannel(channel) +
+    sigmaDeltaAds(ads);
 
+  const alpha = reserveAlpha($("reserve").value);
+  const zq = zAlpha(alpha);
+
+  const taxRate = (+$("tax").value || 0)/100;
+  const regime = $("regime").value;
+  const mode = $("mode").value;
+  const divRate = Math.max(0, Math.min(1, (+$("divPayout").value || 0)/100));
+
+  // 1) Geçen yıl rezerv farkını (release/strengthening) YIL BAŞINDA sermayeye yansıt
+  let reserveMovementThisYear = state.pendingReserveDelta || 0; // +: release, -: strengthening
+  state.capital += reserveMovementThisYear;
+  const reserveNote = `Yıl başı rezerv hareketi: ${reserveMovementThisYear>=0?'+':''}${reserveMovementThisYear.toFixed(2)}`;
+
+  // 2) Olayların μ'lerini baseMu'ya göre ayarla (kullanıcı editlerse zaten güncel)
+  state.events.forEach(e=>{
+    // e.mu zaten tabloda; istersen baseMu'dan yeniden türetmek için burada güncelleyebilirsin.
+    // Örn: if (e.key==="normal") e.mu = baseMu;
+  });
+
+  // 3) Bu yılın σ formülü (olay çarpanı ile)
+  function sigmaForEvent(ev){
+    const s = clamp(baseSigma + sigmaBaseAdj, sMin, sMax) * ev.sigmaMul;
+    return clamp(s, sMin, sMax);
+  }
+
+  // 4) Hesaplama: Beklenen Değer modu veya Tek Yol Simülasyonu
   const tbody = $("resultTbl").querySelector("tbody");
   tbody.innerHTML = "";
+  state.rows = [];
 
-  let expectedNetAfterTax = 0;
-  let expectedNewCap = 0;
+  let expectedAfterTax = 0;
+  let expectedDividend = 0;
+  let expectedYearEndCap = 0;
 
-  state.posteriors.forEach(ev=>{
-    const p = ev.p;
+  let sampled = null; // Tek yol modu için tutulan kayıt
+  let pendingReserveNext = 0; // gelecek yıl başında yansıtılacak delta (LR* - LR_real)*GWP — beklenen/tek yol
 
-    const GWP = baseG * vol * ev.volMul;
-    const LR = Math.min(1, Math.max(0, baseLR + uwAdj + ev.lrDelta/100));
-    const claimsPaid = GWP * LR;
+  // GWP: strateji hacim çarpanı
+  const GWP_base = baseG * vol;
 
-    // Rezerv: yıl sonu, hasar ödemesine göre katsayı
-    const reserveAmt = claimsPaid * (reserveK - 1 + 1); // = claimsPaid * reserveK
+  if(mode==="expected"){
+    // Her olay için p ile ağırlıkla
+    state.events.forEach(ev=>{
+      const p = ev.p;
+      const mu = ev.mu; // olay μ
+      const sigma = sigmaForEvent(ev);
+      // Beklenen değer modunda LR_real'ın beklenenini mu olarak alırız
+      const LR_real = mu; // E[LR] = mu
+      const LR_star = clamp(mu + zq*sigma, 0.40, 1.30);
 
+      const GWP = GWP_base; // burada ev özel hacim yok; istenirse eklenebilir
+      const claimsPaid = GWP * LR_real; // basit model: yıl içi gerçekleşen ödeme ~ mu
+
+      // Bu yıl ayrılan rezerv: LR* hedefi ile kalan yükümlülük
+      const reserveSet = Math.max(0, GWP*LR_star - claimsPaid);
+
+      const comm = GWP * com;
+      const adsCost = GWP * adp;
+
+      const preTax = GWP - (claimsPaid + reserveSet) - comm - adsCost;
+      const tax = preTax>0 ? preTax*taxRate : 0;
+      const afterTax = preTax - tax;
+
+      const dividend = afterTax>0 ? afterTax*divRate : 0;
+      const yearEndCap = state.capital + afterTax - dividend;
+
+      // gelecek yıl başı için beklenen rezerv farkı (burada 0; çünkü LR_real=mu, release/strengthening farkını bir sonraki yıl gerçek LR ile görmek istersek tek yol modunu kullanırız)
+      const reserveDeltaNext = GWP*(LR_star - LR_real);
+
+      expectedAfterTax += p*afterTax;
+      expectedDividend += p*dividend;
+      expectedYearEndCap += p*yearEndCap;
+      pendingReserveNext += p*reserveDeltaNext;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${ev.name}</td>
+        <td>${p.toFixed(3)}</td>
+        <td>${GWP.toFixed(2)}</td>
+        <td>${(LR_real*100).toFixed(1)}%</td>
+        <td>${(LR_star*100).toFixed(1)}%</td>
+        <td>${pct(com)}</td>
+        <td>${pct(adp)}</td>
+        <td class="${preTax>=0?'ok':'bad'}">${preTax.toFixed(2)}</td>
+        <td>${tax.toFixed(2)}</td>
+        <td class="${afterTax>=0?'ok':'bad'}">${afterTax.toFixed(2)}</td>
+        <td>${dividend.toFixed(2)}</td>
+        <td>${yearEndCap.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+
+      state.rows.push({
+        event: ev.name, p, GWP, LR_real, LR_star, com, adp,
+        preTax, tax, afterTax, dividend, yearEndCap
+      });
+    });
+
+  } else { // Tek yol: bir olay rastgele seç, LR_real ~ N(mu, sigma) çek
+    // Olay seç
+    const u = Math.random();
+    let acc = 0, ev = state.events[0];
+    for(const e of state.events){ acc += e.p; if(u<=acc){ ev=e; break; } }
+
+    const mu = ev.mu;
+    const sigma = sigmaForEvent(ev);
+    let LR_real = rngNormal(mu, sigma);
+    LR_real = clamp(LR_real, 0.40, 1.30);
+
+    const LR_star = clamp(mu + zq*sigma, 0.40, 1.30);
+
+    const GWP = GWP_base;
+    const claimsPaid = GWP * LR_real;
+    const reserveSet = Math.max(0, GWP*LR_star - claimsPaid);
     const comm = GWP * com;
-    const ads = GWP * adp;
+    const adsCost = GWP * adp;
 
-    const preTax = GWP - (claimsPaid + reserveAmt) - comm - ads;
-    const taxAmt = preTax>0 ? preTax*tax : 0;
-    const afterTax = preTax - taxAmt;
+    const preTax = GWP - (claimsPaid + reserveSet) - comm - adsCost;
+    const tax = preTax>0 ? preTax*taxRate : 0;
+    const afterTax = preTax - tax;
 
-    expectedNetAfterTax += p * afterTax;
-    expectedNewCap += p * (state.capital + afterTax);
+    const dividend = afterTax>0 ? afterTax*divRate : 0;
+    const yearEndCap = state.capital + afterTax - dividend;
+
+    // Gelecek yıl başında yansıyacak rezerv farkı
+    const reserveDeltaNext = GWP*(LR_star - LR_real);
+
+    expectedAfterTax = afterTax;
+    expectedDividend = dividend;
+    expectedYearEndCap = yearEndCap;
+    pendingReserveNext = reserveDeltaNext;
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ev.name}</td>
-      <td>${p.toFixed(3)}</td>
+      <td>—</td>
       <td>${GWP.toFixed(2)}</td>
-      <td>${pct(LR)}</td>
+      <td>${(LR_real*100).toFixed(1)}%</td>
+      <td>${(LR_star*100).toFixed(1)}%</td>
       <td>${pct(com)}</td>
       <td>${pct(adp)}</td>
       <td class="${preTax>=0?'ok':'bad'}">${preTax.toFixed(2)}</td>
-      <td>${taxAmt.toFixed(2)}</td>
+      <td>${tax.toFixed(2)}</td>
       <td class="${afterTax>=0?'ok':'bad'}">${afterTax.toFixed(2)}</td>
-      <td>${(state.capital + afterTax).toFixed(2)}</td>`;
+      <td>${dividend.toFixed(2)}</td>
+      <td>${yearEndCap.toFixed(2)}</td>
+    `;
     tbody.appendChild(tr);
-  });
 
-  // beklenen değerler
-  const newCap = expectedNewCap; // zaten p ile ağırlıklı
-  const newBand = band(newCap);
-  let fail = false, warn=false;
-  if(regime==="hard"){ if(newCap<100) fail=true; }
-  if(regime==="medium"){
-    if(newCap<50){ if(state.warned) fail=true; else warn=true; }
+    state.rows.push({
+      event: ev.name, p:null, GWP, LR_real, LR_star, com, adp,
+      preTax, tax, afterTax, dividend, yearEndCap
+    });
+    sampled = {event: ev.name, LR_real, LR_star, reserveDeltaNext};
   }
-  if(regime==="easy"){ if(newCap<50) fail=true; }
 
-  let regMsg = "";
-  if(fail) regMsg = "❌ İflas koşulu tetiklendi.";
-  else if(warn){ regMsg = "⚠️ Uyarı: Z bandına indin. Gelecek yıl toparlanmazsa iflas.";
-                 state.warned = true; }
-  else { regMsg = "✅ Regülasyon koşulları sağlandı."; state.warned = false; }
+  // 5) Kümülatif temettü & skor
+  state.cumDividend += expectedDividend;
+  const score = (state.cumDividend / (+$("capitalStart").value || 1)) * 100;
 
+  // 6) Regülasyon kontrolü (temettü düşülmüş beklenen sermaye ile)
+  const reg = regulationCheck(expectedYearEndCap, regime, state.warned);
+  let regMsg = "✅ Regülasyon koşulları sağlandı.";
+  if(reg.fail) regMsg = "❌ İflas koşulu tetiklendi.";
+  else if(reg.warn){ regMsg = "⚠️ Uyarı: Z bandına indin. Gelecek yıl toparlanmazsa iflas."; }
+  state.warned = reg.warn ? true : (reg.fail ? state.warned : false);
+
+  // 7) Yılı kapat: sermaye güncelle, gelecek yıl başı rezerv farkını kaydet
+  state.capital = expectedYearEndCap;
+  state.pendingReserveDelta = pendingReserveNext;
+
+  // 8) Özetler
   $("totals").innerHTML =
-`Başlangıç sermayesi: ${state.capital.toFixed(2)}
-Beklenen Net Kâr (Vergi Sonrası): ${expectedNetAfterTax.toFixed(2)}
-Beklenen yıl sonu sermaye: ${newCap.toFixed(2)}  | Band: ${newBand}
-Rejim: ${regime.toUpperCase()}  → ${regMsg}`;
+`Başlangıç sermayesi (yıl başı, rezerv hareketi sonrası dahil): ${state.capital.toFixed(2)}
+Beklenen Net Kâr (Vergi Sonrası): ${expectedAfterTax.toFixed(2)}
+Beklenen Temettü (VS sonrası): ${expectedDividend.toFixed(2)}
+Beklenen yıl sonu sermaye: ${expectedYearEndCap.toFixed(2)} | Band: ${band(expectedYearEndCap)}
+Kümülatif Temettü: ${state.cumDividend.toFixed(2)}  | Skor: ${score.toFixed(1)}%
+Rejim: ${regime.toUpperCase()} → ${regMsg}`;
 
-  // yılı kapat
-  state.capital = newCap;
+  const pendNote = `Gelecek yıl başında yansıyacak rezerv farkı (LR* - LR_real)*GWP: ${pendingReserveNext>=0?'+':''}${pendingReserveNext.toFixed(2)}`
+  $("reserveInfo").innerText = `${reserveNote}\n${pendNote}`
+
+  // 9) İflas olduysa butonları kilitleme (basit)
+  if(reg.fail){
+    alert("İflas tetiklendi. Oyunu sıfırlayabilirsiniz.");
+  }
 }
 
-$("runYear").addEventListener("click", runYear);
-$("resetYear").addEventListener("click", ()=>{
-  state.capital = +$("capitalStart").value;
-  state.warned = false;
-  $("resultTbl").querySelector("tbody").innerHTML = "";
-  $("totals").textContent = "";
-});
-
-
-/** --- Örneklem uzayı / CSV --- **/
-function toCSV(rows){
-  const header = ["Olay","p(post)","LR_Delta","HacimMul","GWP_mul(all)","Ağırlık Notu"];
-  const lines = [header.join(",")];
-  rows.forEach(r=>lines.push([r.name, r.p.toFixed(4), r.lrDelta, r.volMul.toFixed(2), r.volAll.toFixed(2), `"${r.note}"`].join(",")));
-  return lines.join("\n");
-}
-$("sampleSpace").addEventListener("click", ()=>{
-  if(state.posteriors.length===0) computePosterior();
-  const vol = priceVolume($("price").value);
-  const rows = state.posteriors.map(r=>({...r, volAll: r.volMul * vol}));
-  const csv = toCSV(rows);
-  const blob = new Blob([csv], {type:"text/csv"});
+// CSV
+$("exportCSV").addEventListener("click", ()=>{
+  if(!state.rows.length){ alert("Önce yılı işlet."); return; }
+  const lines = [];
+  lines.push(["Event","p","GWP","LR_real","LR_star","Comm%","Ads%","PreTax","Tax","AfterTax","Dividend","YearEndCapital"].join(","));
+  state.rows.forEach(r=>{
+    lines.push([
+      r.event,
+      r.p===null?"":r.p.toFixed(4),
+      r.GWP.toFixed(2),
+      (r.LR_real*100).toFixed(2)+"%",
+      (r.LR_star*100).toFixed(2)+"%",
+      (r.com*100).toFixed(2)+"%",
+      (r.adp*100).toFixed(2)+"%",
+      r.preTax.toFixed(2),
+      r.tax.toFixed(2),
+      r.afterTax.toFixed(2),
+      r.dividend.toFixed(2),
+      r.yearEndCap.toFixed(2),
+    ].join(","));
+  });
+  const blob = new Blob([lines.join("\n")], {type:"text/csv"});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a"); a.href=url; a.download="orneklem_uzayi.csv"; a.click();
+  const a = document.createElement("a"); a.href=url; a.download="watcher_yil_sonu_ozet.csv"; a.click();
   URL.revokeObjectURL(url);
 });
 
-// İlk posterior hesapla
-computePosterior();
+// Reset
+$("resetGame").addEventListener("click", ()=>{
+  state.capital = +$("capitalStart").value || 100;
+  state.cumDividend = 0;
+  state.warned = false;
+  state.pendingReserveDelta = 0;
+  state.rows = [];
+  $("resultTbl").querySelector("tbody").innerHTML = "";
+  $("totals").innerHTML = "";
+  $("reserveInfo").innerHTML = "";
+});
+
+// Run
+$("runYear").addEventListener("click", runYear);
 </script>
 </body>
 </html>
