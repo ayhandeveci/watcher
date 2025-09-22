@@ -1,601 +1,454 @@
-
-html = r"""<!doctype html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WATCHER — Aktüeryal Karar Etkisi Oyunu (Emlak)</title>
-  <meta name="description" content="WATCHER: Emlak (hayat dışı) sigorta portföy yönetimi — 4 yıllık kriz & katastrofi senaryolarında aktüeryal kararların finansal etkisini gör." />
-  <style>
-    :root{
-      --bg: #0b1020; --card: #111831; --muted: #8aa0c8; --text: #e9eefc; --accent:#6ae3ff; --danger:#ff6b6b; --success:#5ee1a1; --warning:#ffd166;
-      --shadow: 0 10px 30px rgba(0,0,0,.35); --radius:18px;
-    }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; color:var(--text);
-      background: radial-gradient(1200px 800px at 70% -10%, #1a2a6c55, transparent),
-                  radial-gradient(900px 600px at -10% 30%, #b21f1f44, transparent),
-                  radial-gradient(1100px 900px at 110% 120%, #0b1020, #0b1020);}  
-    .container{max-width:1120px;margin:0 auto;padding:24px}
-    .header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;margin-bottom:18px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6ae3ff,#7b78ff 60%,#b77bff);box-shadow:var(--shadow);display:grid;place-items:center}
-    .logo svg{filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
-    .title{font-weight:800;letter-spacing:.2px}
-    .subtitle{color:var(--muted);font-size:.95rem}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(6px)}
-    .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
-    @media(max-width:900px){.grid{grid-template-columns:1fr}}
-    .panel{padding:20px 22px}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:.9rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03)}
-    .buttons{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}
-    button{all:unset;cursor:pointer;padding:12px 16px;border-radius:14px;font-weight:700;letter-spacing:.2px;user-select:none;background:#18223f;border:1px solid rgba(255,255,255,.08);transition:.2s transform,.2s background,.2s box-shadow;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-    button:hover{transform:translateY(-1px);background:#1e2a52} button:active{transform:translateY(0) scale(.99)}
-    .btn-accent{background:linear-gradient(135deg,#6ae3ff,#7b78ff);color:#081229;border:none}
-    .btn-danger{background:linear-gradient(135deg,#ff8890,#ff6b6b);color:#2b0e12;border:none}
-    .btn-success{background:linear-gradient(135deg,#5ee1a1,#5ed2e1);color:#062015;border:none}
-    .chip-btn{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);font-size:.9rem}
-    .chip-btn.active{background:linear-gradient(135deg,#6ae3ff,#7b78ff);color:#061328;border:none}
-    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-    .stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px}
-    .stat small{color:var(--muted);display:flex;align-items:center;gap:6px}
-    .stat strong{font-size:1.2rem}
-    .badge{padding:2px 8px;border-radius:999px;font-size:.75rem}
-    .b-ok{background:#153e2f;color:#bff1dd;border:1px solid #2d7a5d}
-    .b-warn{background:#493a12;color:#ffe6a3;border:1px solid #b59028}
-    .b-bad{background:#4a1518;color:#ffc1c4;border:1px solid #9d2d35}
-    .footer{margin-top:14px;color:var(--muted);font-size:.9rem}
-    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.55);z-index:100}
-    .modal.open{display:flex}
-    .letter{width:min(860px,92vw);max-height:88vh;overflow:auto;background:#faf9f4;color:#1c1a16;border-radius:18px;border:1px solid #e6e1d6;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:26px 26px 18px;position:relative}
-    .letter h3{margin:0 0 8px 0;font-size:1.4rem} .letter .meta{color:#645d4d;font-size:.95rem;margin-bottom:8px} .letter p{line-height:1.5}
-    .ribbon{position:absolute;top:0;right:16px;transform:translateY(-50%);background:#1e2a52;color:#fff;padding:6px 10px;border-radius:8px;font-size:.8rem;letter-spacing:.3px}
-    .ribbon.crisis{background:#b23a48} .ribbon.cat{background:#8a5a00} .ribbon.ok{background:#146c43}
-    .letter-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
-    .yearbar{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
-    .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);font-size:.9rem}
-    .chip.active{background:linear-gradient(135deg,#6ae3ff,#7b78ff);color:#07142a;border:none}
-    .hr{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);margin:14px 0}
-    a.muted{color:var(--muted)}
-    .toggles{display:flex;gap:8px;align-items:center}
-    .tooltip{position:fixed;z-index:120;display:none;max-width:360px;background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,.12);box-shadow:0 20px 50px rgba(0,0,0,.45);border-radius:12px;padding:10px 12px;font-size:.92rem}
-    .g{border-bottom:1px dotted currentColor;cursor:help}
-    .lever-group{margin-top:10px}
-    .lever-title{color:var(--muted);font-size:.92rem;margin:2px 0}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Watcher – Yıllık Sigorta Simülatörü (GitHub Pages)</title>
+<style>
+  :root{
+    --bg:#0f1222; --card:#171a2c; --muted:#9aa3b2; --fg:#eef2ff; --accent:#7aa2ff; --ok:#50d38a; --warn:#ffd066; --bad:#ff7a7a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c1020,#0f1222 60%);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  header{padding:20px 16px;border-bottom:1px solid #22263e;position:sticky;top:0;background:#0f1222d0;backdrop-filter: blur(6px)}
+  h1{margin:0;font-size:20px;letter-spacing:.3px}
+  main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns: 1.1fr 1.5fr}
+  .card{background:var(--card);border:1px solid #232845;border-radius:12px;padding:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+  select,button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b3050;background:#0f1326;color:var(--fg);font-size:14px}
+  button{cursor:pointer;background:linear-gradient(180deg,#24305a,#1b264d);border-color:#2a376a}
+  button.primary{background:linear-gradient(180deg,#3b5bdc,#2845a8);border-color:#2d47a8}
+  button.ghost{background:transparent;border-color:#344;opacity:.9}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .kpi{background:#0f1326;border:1px solid #232845;border-radius:10px;padding:10px}
+  .kpi b{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  .kpi span{font-size:18px}
+  .kpi.ok span{color:var(--ok)} .kpi.warn span{color:var(--warn)} .kpi.bad span{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border-bottom:1px solid #232845;padding:8px 6px;text-align:right}
+  th{color:#a9b3c7;font-weight:600}
+  td:first-child, th:first-child{text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2b3050;font-size:11px;color:#cbd5ff}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .footer{color:var(--muted);font-size:12px;margin-top:8px}
+  .sep{height:1px;background:#232845;margin:10px 0}
+  .muted{color:var(--muted)}
+  .danger{color:var(--bad);font-weight:600}
+  .success{color:var(--ok);font-weight:600}
+</style>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <div class="brand">
-        <div class="logo" aria-hidden="true">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Watcher logo">
-            <path d="M12 2l7 3v6c0 5-3.2 9.4-7 11-3.8-1.6-7-6-7-11V5l7-3z" fill="white" opacity=".9"/>
-            <path d="M7 11h2v5H7v-5zm4-3h2v8h-2V8zm4 2h2v6h-2v-6z" fill="#0b1020"/>
-          </svg>
-        </div>
+<header>
+  <h1>Watcher – Yıllık Sigorta Simülatörü</h1>
+</header>
+<main>
+  <section class="card">
+    <h2 style="margin:0 0 6px 0;font-size:16px">Yıl Başı Stratejisi</h2>
+    <div class="row">
+      <div>
+        <label>Fiyatlama</label>
+        <select id="pricing">
+          <option value="cheap">Ucuz (hacim↑, risk↑)</option>
+          <option value="mid" selected>Orta (dengeli)</option>
+          <option value="expensive">Pahalı (hacim↓, risk↓)</option>
+        </select>
+      </div>
+      <div>
+        <label>Underwriting (Risk Kabul)</label>
+        <select id="uw">
+          <option value="loose">Gevşek (riskli karışım)</option>
+          <option value="mid" selected>Orta</option>
+          <option value="tight">Sıkı (daha temiz portföy)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>Satış Kanalı</label>
+        <select id="channel">
+          <option value="agent">Acente (komisyon yüksek)</option>
+          <option value="balanced" selected>Dengeli</option>
+          <option value="digital">Dijital (komisyon düşük)</option>
+        </select>
+      </div>
+      <div>
+        <label>Reklam & İmaj</label>
+        <select id="ads">
+          <option value="low">Düşük</option>
+          <option value="mid" selected>Orta</option>
+          <option value="high">Yüksek</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="grid2">
+      <div>
+        <label>Regülasyon (Zorluk)</label>
+        <select id="regime">
+          <option value="easy">Easy – <50 iflas</option>
+          <option value="medium" selected>Medium – <75 iki yıl üst üste iflas</option>
+          <option value="hard">Hard – <100 iflas</option>
+        </select>
+      </div>
+      <div>
+        <label>Vergi Oranı</label>
+        <select id="tax">
+          <option value="0.10">%10</option>
+          <option value="0.20" selected>%20</option>
+          <option value="0.30">%30</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="flex">
+      <button id="btnRoll" class="primary">1) Olayları Çek (Yıl İçi)</button>
+      <span class="hint">Olay çekildikten sonra yıl sonu rezerv politikasını seçeceksin.</span>
+    </div>
+
+    <div id="eventBox" style="display:none;margin-top:10px">
+      <div class="pill" id="eventPill">Olay: —</div>
+      <div class="metrics">
+        <div class="kpi"><b>GWP (Prim)</b><span id="mGwp">—</span></div>
+        <div class="kpi"><b>LR (Hasar Oranı)</b><span id="mLR">—</span></div>
+        <div class="kpi"><b>Komisyon</b><span id="mComm">—</span></div>
+      </div>
+      <div class="metrics">
+        <div class="kpi"><b>Reklam</b><span id="mAds">—</span></div>
+        <div class="kpi"><b>Tahsil (ödenen)</b><span id="mPaid">—</span></div>
+        <div class="kpi"><b>Rezerv Bazı</b><span id="mResBase">—</span></div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="row">
         <div>
-          <div class="title" id="t-title">WATCHER — Aktüeryal Karar Etkisi Oyunu</div>
-          <div class="subtitle" id="t-subtitle">Emlak (Hayat Dışı) • 4‑yıllık risk & sermaye simülasyonu</div>
+          <label>Yıl Sonu Rezerv Politikası</label>
+          <select id="reservePolicy">
+            <option value="conservative">Konservatif (yüksek rezerv)</option>
+            <option value="neutral" selected>Nötr</option>
+            <option value="aggressive">Agresif (düşük rezerv)</option>
+          </select>
+          <div class="hint">Rezerv kararı kapanış öncesi verilir.</div>
         </div>
-      </div>
-      <div class="toggles">
-        <span class="pill">🌐 <button id="lang-pill" class="chip-btn" onclick="toggleLang()"><span id="lang-label">TR</span></button></span>
-        <span class="pill" id="edu-pill" onclick="toggleEdu()">📘 <span id="edu-label">Eğitim Modu: Kapalı</span></span>
-      </div>
-    </header>
-
-    <div class="grid">
-      <section class="card panel">
-        <h2 style="margin:0 0 8px 0" id="t-choose-company">Emlak (Hayat Dışı) modu</h2>
-        <p class="subtitle" style="margin-top:0" id="t-desc">4 yıllık projeksiyon. Her oyunda en az bir kriz ve bir katastrofi yılı vardır. Kararlarınız sermaye yeterliliğini etkiler.</p>
-
-        <div id="strategy-area" style="margin-top:10px">
-          <div class="hr"></div>
-          <h3 style="margin:8px 0 6px 0"><span id="t-risk-appetite">Risk iştahı</span> — <span id="year-label">Year 1</span></h3>
-          <div class="buttons">
-            <button onclick="chooseStrategy('conservative')">🧩 <span id="t-conservative">Konservatif</span></button>
-            <button onclick="chooseStrategy('aggressive')">⚡ <span id="t-aggressive">Agresif</span></button>
-            <button onclick="chooseStrategy('random')">🎲 <span id="t-random">Rastgele</span></button>
-          </div>
-          <p class="subtitle" style="margin-top:10px" id="t-hint">İpucu: Konservatif kötü yıllarda korur; agresif sakin yıllarda daha çok kazanır.</p>
-
-          <!-- Advanced levers -->
-          <div class="hr"></div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <strong>⚙️ <span id="t-advanced">Gelişmiş kollar (opsiyonel)</span></strong>
-            <button class="chip-btn" onclick="presetLevers()" title="Stratejiye göre ayarla">↩︎ <span id="t-preset">Stratejiye göre ayarla</span></button>
-          </div>
-
-          <div class="lever-group">
-            <div class="lever-title"><span class="g" onclick="gloss('commission')" id="t-commission">Komisyon</span></div>
-            <div class="buttons" data-group="commission">
-              <button class="chip-btn" data-val="low" onclick="setLever('commission','low',this)">Düşük</button>
-              <button class="chip-btn" data-val="std" onclick="setLever('commission','std',this)">Standart</button>
-              <button class="chip-btn" data-val="high" onclick="setLever('commission','high',this)">Yüksek</button>
-            </div>
-          </div>
-
-          <div class="lever-group">
-            <div class="lever-title"><span class="g" onclick="gloss('underwriting')" id="t-underwriting">Underwriting Sıkılığı</span></div>
-            <div class="buttons" data-group="uw">
-              <button class="chip-btn" data-val="strict" onclick="setLever('uw','strict',this)">Sıkı</button>
-              <button class="chip-btn" data-val="market" onclick="setLever('uw','market',this)">Piyasa</button>
-              <button class="chip-btn" data-val="loose" onclick="setLever('uw','loose',this)">Gevşek</button>
-            </div>
-          </div>
-
-          <div class="lever-group">
-            <div class="lever-title"><span class="g" onclick="gloss('reinsurance')">Reasürans Seviyesi</span></div>
-            <div class="buttons" data-group="reins">
-              <button class="chip-btn" data-val="high" onclick="setLever('reins','high',this)">Yüksek</button>
-              <button class="chip-btn" data-val="std" onclick="setLever('reins','std',this)">Standart</button>
-              <button class="chip-btn" data-val="low" onclick="setLever('reins','low',this)">Düşük</button>
-            </div>
-          </div>
-
-          <div class="lever-group">
-            <div class="lever-title"><span class="g" onclick="gloss('investment_risk')" id="t-invrisk">Yatırım Riski</span></div>
-            <div class="buttons" data-group="invrisk">
-              <button class="chip-btn" data-val="low" onclick="setLever('invrisk','low',this)">Düşük</button>
-              <button class="chip-btn" data-val="med" onclick="setLever('invrisk','med',this)">Orta</button>
-              <button class="chip-btn" data-val="high" onclick="setLever('invrisk','high',this)">Yüksek</button>
-            </div>
-          </div>
-
+        <div style="display:flex;align-items:flex-end">
+          <button id="btnClose" class="primary">2) Yılı Kapat (Rezerv + Vergi + Sermaye)</button>
         </div>
-
-        <div id="flow-buttons" style="margin-top:14px" class="buttons">
-          <button class="btn-accent" onclick="nextStep()" id="t-start">▶️ Başlat / Devam</button>
-          <button onclick="resetGame()" id="t-newgame">🔁 Yeni Oyun</button>
-        </div>
-
-        <div style="margin-top:14px">
-          <div class="yearbar" id="yearbar">
-            <span class="chip">Y1</span><span class="chip">Y2</span><span class="chip">Y3</span><span class="chip">Y4</span>
-          </div>
-        </div>
-      </section>
-
-      <aside class="card panel">
-        <h3 style="margin:0 0 8px 0" id="t-snapshot">Şirket özeti</h3>
-        <div class="stats">
-          <div class="stat"><small><span class="g" onclick="gloss('capital')" id="t-cap">Sermaye</span></small><strong id="stat-cap">—</strong></div>
-          <div class="stat"><small id="t-year">Yıl</small><strong id="stat-year">—</strong></div>
-          <div class="stat"><small id="t-lastpl">Son K/Z</small><strong id="stat-pl">—</strong></div>
-          <div class="stat"><small id="t-strategy">Strateji</small><strong id="stat-strategy">—</strong></div>
-          <div class="stat"><small><span class="g" onclick="gloss('rbc')">RBC</span> <span class="badge" id="rbc-badge">—</span></small><strong id="stat-rbc">—</strong></div>
-          <div class="stat"><small><span class="g" onclick="gloss('loss_ratio')" id="t-lr">Loss Ratio</span></small><strong id="stat-lr">—</strong></div>
-          <div class="stat"><small><span class="g" onclick="gloss('combined_ratio')" id="t-cr">Combined Ratio</span></small><strong id="stat-cr">—</strong></div>
-        </div>
-        <div class="hr"></div>
-        <h4 style="margin:0 0 8px 0" id="t-tips-ttl">İpuçları</h4>
-        <ul style="margin:0 0 0 18px; padding:0; color:var(--muted)" id="tips-list"></ul>
-        <div class="footer" id="t-deploy">Yayın: Bu dosyayı <code>index.html</code> olarak repo köküne koy → Settings → Pages (main/root).</div>
-      </aside>
-    </div>
-  </div>
-
-  <div class="modal" id="modal">
-    <div class="letter" role="dialog" aria-modal="true" aria-labelledby="ltitle">
-      <div class="ribbon ok" id="ribbon">NORMAL</div>
-      <h3 id="ltitle">Yıl Raporu</h3>
-      <div class="meta" id="lmeta">—</div>
-      <div id="lbody"><p>…</p></div>
-      <div class="letter-actions">
-        <button onclick="closeModal()" id="t-close">Kapat</button>
-        <button class="btn-accent" onclick="afterLetter()" id="t-next">İleri</button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div id="tooltip" class="tooltip"></div>
+  <section class="card">
+    <h2 style="margin:0 0 6px 0;font-size:16px">Durum & Rapor</h2>
+    <div class="grid2">
+      <div class="kpi"><b>Yıl</b><span id="kYear">1</span></div>
+      <div class="kpi"><b>Sermaye</b><span id="kCapital">100.00</span></div>
+    </div>
+    <div class="metrics">
+      <div class="kpi" id="kpiStatus"><b>Durum</b><span id="kStatus">Başlangıç</span></div>
+      <div class="kpi"><b>İflas Eşiği</b><span id="kThresh">Medium: <75 iki yıl</span></div>
+      <div class="kpi"><b>İmaj</b><span id="kBrand">Orta</span></div>
+    </div>
+    <div class="sep"></div>
+    <div class="flex">
+      <button id="btnNext" class="ghost" disabled>Yeni Yıla Geç</button>
+      <button id="btnReset" class="">Sıfırla</button>
+      <span class="hint">Yıl kapanmadan yeni yıla geçemezsin.</span>
+    </div>
+    <div class="sep"></div>
+    <div class="footer">Her yıl: Strateji → Olay → <b>Rezerv Seç</b> → Vergi & Sermaye → İflas kontrol → Yeni yıl.</div>
+  </section>
 
-  <script>
-    // ======================= I18N =======================
-    const i18n = {
-      TR: {
-        title:"WATCHER — Aktüeryal Karar Etkisi Oyunu", subtitle:"Emlak (Hayat Dışı) • 4‑yıllık risk & sermaye simülasyonu",
-        choose_company:"Emlak (Hayat Dışı) modu",
-        desc:"4 yıllık projeksiyon. Her oyunda en az bir kriz ve bir katastrofi yılı vardır. Kararlarınız sermaye yeterliliğini etkiler.",
-        risk_appetite:"Risk iştahı", conservative:"Konservatif", aggressive:"Agresif", random:"Rastgele",
-        hint:"İpucu: Konservatif kötü yıllarda korur; agresif sakin yıllarda daha çok kazanır.",
-        start:"Başlat / Devam", newgame:"Yeni Oyun", snapshot:"Şirket özeti", cap:"Sermaye", year:"Yıl", lastpl:"Son K/Z", strategy:"Strateji",
-        rbc_badge:"RBC", lr:"Loss Ratio", tips_ttl:"İpuçları", cr:"Combined Ratio",
-        tips:[
-          "Her oyunda en az 1 kriz ve 1 katastrofi yılı vardır.",
-          "Konservatif = daha az kâr, kötü yıllarda daha çok koruma.",
-          "Agresif = sakin yıllarda daha çok kâr, kötü yılda iflas riski artar.",
-          "RBC oranı 1.0'ın altına düşerse tehlike büyür.",
-          "Loss Ratio = Hasar / Prim; %100 üzeri teknik zarar demektir.",
-          "Komisyonu yükseltmek büyümeyi artırır ama gider oranını da yükseltir."
-        ],
-        deploy:"Yayın: Bu dosyayı index.html olarak repo köküne koy → Settings → Pages (main/root).",
-        modal_close:"Kapat", modal_next:"İleri",
-        ribbon_normal:"NORMAL", ribbon_crisis:"KRİZ", ribbon_cat:"KATASTROFİK",
-        letterMeta:(sc,st,notes)=>`${sc} • Strateji: ${st} • ${notes}`,
-        end_summary:"Oyun Sonu — Özet",
-        end_lines:(capital, survived)=>[
-          `<strong>4 Yıllık Özet</strong>`,
-          !survived? 'Şirket ara yılda iflas etti. Kriz/katastrofi maruziyeti sermayeyi eritti.' : 'Projeksiyon tamamlandı.',
-          `Final sermaye: <strong>${capital}</strong>.`
-        ],
-        stratLabel:(s)=> s==='conservative'? 'Konservatif' : 'Agresif',
-        glossary:{
-          capital:"Sermaye: Şirketin beklenmedik zararlara karşı tamponu.",
-          rbc:"RBC (Risk-Based Capital): Risklere göre gereken asgari sermaye. RBC<1 tehlikedir.",
-          loss_ratio:"Loss Ratio: Dönem hasarları / Primler. %100 üzeri teknik zarar gösterir.",
-          combined_ratio:"Combined Ratio: Loss Ratio + Expense Ratio (yatırım hariç). %100 üzeri teknik zarar.",
-          expense_ratio:"Expense Ratio: Gider / Prim.",
-          premium:"Prim: Yazılan brüt prim.",
-          commission:"Komisyon: Satış artar, gider ve (hayatta) lapse riski artabilir.",
-          underwriting:"Underwriting sıkılığı: Sıkı = daha iyi fiyat/seleksiyon, fakat büyüme daha düşük.",
-          investment_risk:"Yatırım riski: Getiri oynaklığını artırır — iyi yılda yüksek, kötü yılda daha negatif.",
-          catastrophe:"Katastrofi: Nadir fakat çok büyük kayıp olayı.",
-          crisis:"Kriz: Finansal stres yılı.",
-          reinsurance:"Reasürans: Büyük riskleri paylaşmak için devretme."
-        }
-      },
-      EN: {
-        title:"WATCHER — Actuarial Strategy Simulator", subtitle:"Property (Non-Life) • 4‑year risk & capital simulation",
-        choose_company:"Property (Non-Life) mode",
-        desc:"4-year projection. Each run includes at least one crisis and one catastrophe year. Your choices impact capital adequacy.",
-        risk_appetite:"Risk appetite", conservative:"Conservative", aggressive:"Aggressive", random:"Random",
-        hint:"Tip: Conservative protects in bad years; aggressive earns more in calm years.",
-        start:"Start / Continue", newgame:"New Game", snapshot:"Company snapshot", cap:"Capital", year:"Year", lastpl:"Last P/L", strategy:"Strategy",
-        rbc_badge:"RBC", lr:"Loss Ratio", tips_ttl:"Tips", cr:"Combined Ratio",
-        tips:[
-          "Each run has at least one crisis and one catastrophe year.",
-          "Conservative = lower profit, better protection in bad years.",
-          "Aggressive = higher profit in calm years, higher bankruptcy risk in bad years.",
-          "If RBC < 1.0, danger increases.",
-          "Loss Ratio = Claims / Premium; above 100% means technical loss.",
-          "Higher commissions lift growth but raise expense ratio."
-        ],
-        deploy:"Deploy: Save this file as index.html at repo root → Settings → Pages (main/root).",
-        modal_close:"Close", modal_next:"Next",
-        ribbon_normal:"NORMAL", ribbon_crisis:"CRISIS", ribbon_cat:"CATASTROPHE",
-        letterMeta:(sc,st,notes)=>`${sc} • Strategy: ${st} • ${notes}`,
-        end_summary:"Game Over — Summary",
-        end_lines:(capital, survived)=>[
-          `<strong>4-Year Summary</strong>`,
-          !survived? 'The company went insolvent mid-projection. Crisis/catastrophe exposure eroded capital.' : 'Projection completed.',
-          `Final capital: <strong>${capital}</strong>.`
-        ],
-        stratLabel:(s)=> s==='conservative'? 'Conservative' : 'Aggressive',
-        glossary:{
-          capital:"Capital: The buffer to absorb unexpected losses.",
-          rbc:"RBC (Risk-Based Capital): Minimum required capital relative to risk. RBC<1 is dangerous.",
-          loss_ratio:"Loss Ratio: Claims / Premium for the period. Above 100% implies technical loss.",
-          combined_ratio:"Combined Ratio: Loss Ratio + Expense Ratio (ex-investment). Above 100% implies underwriting loss.",
-          expense_ratio:"Expense Ratio: Expenses / Premium.",
-          premium:"Premium: Gross written premium.",
-          commission:"Commission: Boosts sales; raises expenses.",
-          underwriting:"Underwriting tightness: Strict = better pricing/selection, slower growth.",
-          investment_risk:"Investment risk: Increases return volatility — higher highs, lower lows.",
-          catastrophe:"Catastrophe: Rare large-loss event.",
-          crisis:"Crisis: Financial stress year.",
-          reinsurance:"Reinsurance: Transfer part of large risks."
-        }
+  <section class="card" style="grid-column:1 / -1">
+    <h2 style="margin:0 0 6px 0;font-size:16px">Yıl Bazlı Kayıt</h2>
+    <table id="log">
+      <thead>
+        <tr>
+          <th>Yıl</th><th>Olay</th><th>Fiyat</th><th>UW</th><th>Kanal</th><th>Reklam</th>
+          <th>Rezerv</th><th>GWP</th><th>LR</th><th>Ödenen</th><th>Rezerv</th><th>Kom.</th><th>Reklam</th><th>VÖ</th><th>Vergi</th><th>VS</th><th>Sermaye</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+/* =========================
+   CONFIG – katsayılar
+   ========================= */
+const CONFIG = {
+  baseGWP: 100,         // baz prim (denge & normal)
+  baseLR: 0.65,         // baz hasar oranı (LR)
+  tax: 0.20,            // default; UI'dan güncellenir
+  paidRatio: 0.70,      // yıl içinde ödenen hasar oranı
+  // Olay olasılıkları (toplam 1.0)
+  events: [
+    {name:"Normal", p:0.60, lrAdd:0.00, volMul:1.00, brand:"="},
+    {name:"Fiyat Savaşı", p:0.20, lrAdd:0.05, volMul:1.10, brand:"-"},
+    {name:"Cat", p:0.15, lrAdd:0.12, volMul:1.00, brand:"="},
+    {name:"PR Krizi", p:0.05, lrAdd:0.01, volMul:0.90, brand:"--"}
+  ],
+  // Strateji etkileri
+  pricing: {
+    cheap:      {volMul:1.00, lrAdd:0.08}, // ucuz → risk↑
+    mid:        {volMul:1.00, lrAdd:0.00},
+    expensive:  {volMul:0.85, lrAdd:-0.06}
+  },
+  uw: {
+    loose:{lrAdd:0.04}, mid:{lrAdd:0.00}, tight:{lrAdd:-0.03}
+  },
+  channel: {
+    agent:{comm:0.18, brand:"+", demand:1.00},
+    balanced:{comm:0.12, brand:"=", demand:1.00},
+    digital:{comm:0.05, brand:"-", demand:0.95}
+  },
+  ads: {
+    low:{rate:0.01, brand:-1, demand:0.95},
+    mid:{rate:0.03, brand:0, demand:1.00},
+    high:{rate:0.06, brand:+1, demand:1.10}
+  },
+  reservePolicy:{
+    conservative:{mult:1.20, label:"Konservatif"},
+    neutral:{mult:1.00, label:"Nötr"},
+    aggressive:{mult:0.80, label:"Agresif"}
+  },
+  regimes:{
+    easy:{label:"Easy: <50 iflas", test:(cap, trail)=> cap<50 ? "FAIL" : "OK"},
+    medium:{label:"Medium: <75 iki yıl", test:(cap, trail)=> {
+      // trail: önceki yılda <75 miydi?
+      if(cap < 75){
+        return (trail ? "FAIL" : "WARN"); // üst üste iki yıl <75 → FAIL
       }
-    };
-    let lang = 'TR'; let edu = false;
+      return "OK";
+    }},
+    hard:{label:"Hard: <100 iflas", test:(cap, trail)=> cap<100 ? "FAIL" : "OK"}
+  }
+};
 
-    function applyLang(){
-      const L = i18n[lang];
-      document.getElementById('t-title').textContent = L.title;
-      document.getElementById('t-subtitle').textContent = L.subtitle;
-      document.getElementById('t-choose-company').textContent = L.choose_company;
-      document.getElementById('t-desc').textContent = L.desc;
-      document.getElementById('t-risk-appetite').textContent = L.risk_appetite;
-      document.getElementById('t-conservative').textContent = L.conservative;
-      document.getElementById('t-aggressive').textContent = L.aggressive;
-      document.getElementById('t-random').textContent = L.random;
-      document.getElementById('t-hint').textContent = L.hint;
-      document.getElementById('t-start').textContent = '▶️ ' + L.start;
-      document.getElementById('t-newgame').textContent = '🔁 ' + L.newgame;
-      document.getElementById('t-snapshot').textContent = L.snapshot;
-      document.getElementById('t-cap').textContent = L.cap;
-      document.getElementById('t-year').textContent = L.year;
-      document.getElementById('t-lastpl').textContent = L.lastpl;
-      document.getElementById('t-strategy').textContent = L.strategy;
-      document.getElementById('t-lr').textContent = L.lr;
-      document.getElementById('t-cr').textContent = L.cr;
-      document.getElementById('t-tips-ttl').textContent = L.tips_ttl;
-      document.getElementById('t-deploy').textContent = L.deploy;
-      document.getElementById('t-close').textContent = L.modal_close;
-      document.getElementById('t-next').textContent = L.modal_next;
-      document.getElementById('lang-label').textContent = lang;
-      document.getElementById('edu-label').textContent = edu ? (lang==='TR'?'Eğitim Modu: Açık':'Education: On') : (lang==='TR'?'Eğitim Modu: Kapalı':'Education: Off');
-      const ul = document.getElementById('tips-list');
-      ul.innerHTML = L.tips.map(t=>`<li>${t}</li>`).join('');
-      refreshStats();
+// Global durum
+let state = {
+  year: 1,
+  capital: 100.00,
+  brandScore: 0,           // imaj (negatif / pozitif)
+  lowTrailPrev: false,     // Medium rejimde <75 geçmiş yıl bayrağı
+  regime: "medium",
+  taxRate: CONFIG.tax,
+  locked: false,           // olay çekildi mi?
+  current: null            // geçici yıl verileri (kapanış öncesi)
+};
+
+// Kısayol
+const $ = sel => document.querySelector(sel);
+const logBody = $("#log tbody");
+
+// UI init
+function refreshUI(){
+  $("#kYear").textContent = state.year;
+  $("#kCapital").textContent = state.capital.toFixed(2);
+  $("#kBrand").textContent = state.brandScore>0 ? "Yüksek"
+                      : state.brandScore<0 ? "Düşük" : "Orta";
+  const reg = CONFIG.regimes[state.regime];
+  $("#kThresh").textContent = reg.label;
+  $("#kStatus").textContent = state.locked ? "Yıl içi olay çekildi" : "Strateji bekleniyor";
+  $("#kpiStatus").className = "kpi " + (state.locked ? "warn":"");
+  $("#eventBox").style.display = state.locked ? "block" : "none";
+  $("#btnNext").disabled = !!state.locked; // kapanmadan geçiş yok
+}
+refreshUI();
+
+$("#regime").addEventListener("change", e=>{
+  state.regime = e.target.value;
+  refreshUI();
+});
+$("#tax").addEventListener("change", e=>{
+  state.taxRate = parseFloat(e.target.value);
+});
+
+// Olay çek
+$("#btnRoll").addEventListener("click", ()=>{
+  if(state.locked){return;}
+  // Stratejileri oku
+  const pr = $("#pricing").value;
+  const uw = $("#uw").value;
+  const ch = $("#channel").value;
+  const ad = $("#ads").value;
+
+  // Olay seç (weighted random)
+  const ev = weightedPick(CONFIG.events);
+
+  // GWP ve LR oluştur
+  const base = CONFIG.baseGWP;
+  const mixVol = CONFIG.pricing[pr].volMul * CONFIG.events.find(e=>e.name===ev.name).volMul
+               * CONFIG.ads[ad].demand * CONFIG.channel[ch].demand;
+  let gwp = base * mixVol;
+
+  let lr = CONFIG.baseLR
+         + CONFIG.pricing[pr].lrAdd
+         + CONFIG.uw[uw].lrAdd
+         + ev.lrAdd;
+
+  lr = clamp(lr, 0.40, 1.50); // mantıklı sınırlar
+  const commRate = CONFIG.channel[ch].comm;
+  const adRate = CONFIG.ads[ad].rate;
+
+  // Yıl içi ödemeler ve rezerv bazı
+  const expectedLoss = gwp * lr;
+  const paidLoss = expectedLoss * CONFIG.paidRatio;
+  const reserveBase = expectedLoss * (1 - CONFIG.paidRatio);
+
+  // İmaj güncelleme (hafif)
+  state.brandScore += CONFIG.ads[ad].brand;
+  if(ev.brand=="+") state.brandScore++;
+  if(ev.brand=="-") state.brandScore--;
+
+  // Geçici yıl verilerini tut
+  state.current = {
+    pr, uw, ch, ad, ev: ev.name,
+    gwp, lr, commRate, adRate,
+    paidLoss, reserveBase
+  };
+  state.locked = true;
+  // UI güncelle
+  $("#eventPill").textContent = "Olay: " + ev.name;
+  $("#mGwp").textContent = gwp.toFixed(2);
+  $("#mLR").textContent = (lr*100).toFixed(1) + "%";
+  $("#mComm").textContent = (commRate*100).toFixed(1) + "%";
+  $("#mAds").textContent = (adRate*100).toFixed(1) + "%";
+  $("#mPaid").textContent = paidLoss.toFixed(2);
+  $("#mResBase").textContent = reserveBase.toFixed(2);
+  refreshUI();
+});
+
+// Yılı kapat (rezerv + vergi + sermaye)
+$("#btnClose").addEventListener("click", ()=>{
+  if(!state.locked || !state.current) return;
+  const pol = $("#reservePolicy").value;
+  const rp = CONFIG.reservePolicy[pol];
+
+  // Bileşenler
+  const c = state.current;
+  const reserve = c.reserveBase * rp.mult;
+  const commission = c.gwp * c.commRate;
+  const ads = c.gwp * c.adRate;
+
+  // Net kâr VÖ
+  const preTax = c.gwp - (c.paidLoss + reserve) - commission - ads;
+  const tax = preTax>0 ? preTax * state.taxRate : 0;
+  const postTax = preTax - tax;
+  state.capital += postTax;
+
+  // Rejim testi
+  const verdict = CONFIG.regimes[state.regime].test(state.capital, state.lowTrailPrev);
+
+  // Medium rejimde trail bayrağını güncelle
+  if(state.regime==="medium"){
+    if(state.capital < 75){
+      // bu yıl <75 ise (ikinci darbe ise FAIL zaten yukarıda verildi)
+      state.lowTrailPrev = (verdict!=="OK"); // WARN → true, FAIL → true
+    } else {
+      state.lowTrailPrev = false;
     }
-    function toggleLang(){ lang = (lang==='TR')? 'EN':'TR'; applyLang(); }
-    function toggleEdu(){ edu = !edu; applyLang(); }
-    function tGloss(key){ return i18n[lang].glossary[key] || key }
+  }
 
-    // ======================= Core State =======================
-    const game = {
-      year:1, capital:100, lastPL:null, strategy:null, scenario:null, alive:true, history:[],
-      lastLR:null, lastRBC:null, lastCR:null, cycleAdj:0,
-      levers:{ commission:'std', uw:'market', reins:'std', invrisk:'med' }
-    };
-    const settings = { difficulty:'fair' };
+  // Log satırı
+  appendLog({
+    year: state.year,
+    ev: c.ev, pr: c.pr, uw: c.uw, ch: c.ch, ad: c.ad, pol: rp.label,
+    gwp: c.gwp, lr: c.lr, paid: c.paidLoss, res: reserve, comm: commission, ads,
+    preTax, tax, postTax, capital: state.capital
+  });
 
-    const dom = {
-      strategyArea: document.getElementById('strategy-area'), yearLabel: document.getElementById('year-label'),
-      yearbar: document.getElementById('yearbar').children, statCap: document.getElementById('stat-cap'), statYear: document.getElementById('stat-year'),
-      statPL: document.getElementById('stat-pl'), statStrategy: document.getElementById('stat-strategy'), modal: document.getElementById('modal'),
-      ribbon: document.getElementById('ribbon'), ltitle: document.getElementById('ltitle'), lmeta: document.getElementById('lmeta'), lbody: document.getElementById('lbody'),
-      statLR: document.getElementById('stat-lr'), statRBC: document.getElementById('stat-rbc'), rbcBadge: document.getElementById('rbc-badge'),
-      statCR: document.getElementById('stat-cr'), tooltip: document.getElementById('tooltip')
-    };
+  // Durum & UI
+  const statusEl = $("#kStatus");
+  if(verdict==="FAIL"){
+    statusEl.textContent = "İflas!";
+    $("#kpiStatus").className = "kpi bad";
+    disableAll();
+  } else {
+    statusEl.textContent = verdict==="WARN" ? "Uyarı: Sermaye eşiğinin altında" : "Yıl kapandı";
+    $("#kpiStatus").className = "kpi " + (verdict==="WARN" ? "warn" : "ok");
+    $("#btnNext").disabled = false; // yeni yıla geçilebilir
+  }
 
-    // ======================= Scenarios (Non-Life only) =======================
-    const nonLifeScenarios = [
-      { name:"Hurricane Alley", years:[
-        { type:'normal', loss:'slightlyHigh', infl:'avg', invest:'avg', textTR:"Yıl 1: Orta ölçekli hasarlar (fırtına/yangın).", textEN:"Year 1: Many mid-sized losses (storms/fires)." },
-        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 2: Kategori 5 kasırga; büyük kayıplar.", textEN:"Year 2: Category 5 hurricane; large losses." },
-        { type:'normal', loss:'low', infl:'avg', invest:'high', textTR:"Yıl 3: Sakin; fiyatlar yükseldi.", textEN:"Year 3: Calm; rates hardened." },
-        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Kriz ve yüksek enflasyon.", textEN:"Year 4: Crisis with high inflation." }
-      ]},
-      { name:"Marmara Quake", years:[
-        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 1: Beklentiye yakın.", textEN:"Year 1: Near expectations." },
-        { type:'normal', loss:'slightlyHigh', infl:'avg', invest:'avg', textTR:"Yıl 2: Küçük depremler ve yağış hasarları.", textEN:"Year 2: Minor quakes and rainfall losses." },
-        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 3: Büyük bölgesel deprem; çok yüksek tazminat.", textEN:"Year 3: Major regional earthquake; very high claims." },
-        { type:'normal', loss:'avg', infl:'avg', invest:'high', textTR:"Yıl 4: Yeniden yapılanma dönemi; fiyatlar artıda.", textEN:"Year 4: Rebuilding; pricing improved." }
-      ]},
-      { name:"Black Sea Floods", years:[
-        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 1: Mevsim normalleri.", textEN:"Year 1: Seasonal norms." },
-        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 2: Ani sel ve heyelan; geniş etki.", textEN:"Year 2: Flash floods & landslides; wide impact." },
-        { type:'normal', loss:'low', infl:'avg', invest:'high', textTR:"Yıl 3: Sakin; iyileşme yılı.", textEN:"Year 3: Calm; recovery year." },
-        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Ekonomik baskı ve maliyet artışları.", textEN:"Year 4: Economic pressure and cost inflation." }
-      ]},
-      { name:"Urban Fire Risk", years:[
-        { type:'normal', loss:'low', infl:'avg', invest:'avg', textTR:"Yıl 1: Sakin.", textEN:"Year 1: Calm." },
-        { type:'normal', loss:'avg', infl:'avg', invest:'avg', textTR:"Yıl 2: Kentsel yangınlarda artış.", textEN:"Year 2: Uptick in urban fires." },
-        { type:'catastrophe', loss:'cat', infl:'avg', invest:'avg', textTR:"Yıl 3: Büyük endüstriyel yangın; tekil fakat dev hasar.", textEN:"Year 3: Major industrial fire; single but huge loss." },
-        { type:'crisis', loss:'avg', infl:'high', invest:'low', textTR:"Yıl 4: Enflasyon hasar maliyetlerini yükseltti.", textEN:"Year 4: Inflation raised claim costs." }
-      ]}
-    ];
+  state.locked = false;   // kapanış tamam
+  state.current = null;
+  refreshUI();
+});
 
-    // ======================= Helpers =======================
-    function sample(arr){ return arr[Math.floor(Math.random()*arr.length)] }
-    function setYearbarActive(){ Array.from(dom.yearbar).forEach((n,idx)=>{ if(idx===game.year-1) n.classList.add('active'); else n.classList.remove('active'); }); }
-    function formatMoney(v){ return "$"+Number(v).toFixed(1)+"M" }
-    function capFirst(s){ return s? s[0].toUpperCase()+s.slice(1): s }
+// Yeni yıla geç
+$("#btnNext").addEventListener("click", ()=>{
+  if($("#btnNext").disabled) return;
+  state.year += 1;
+  $("#btnNext").disabled = true;
+  $("#eventBox").style.display = "none";
+  $("#kStatus").textContent = "Yeni yıl";
+  $("#kpiStatus").className = "kpi";
+  refreshUI();
+});
 
-    function refreshStats(){
-      dom.statCap.textContent = formatMoney(game.capital);
-      dom.statYear.textContent = game.year + (game.alive?"/4":" (end)");
-      dom.statPL.textContent = (game.lastPL==null?"—": ((game.lastPL>=0?"+":"")+formatMoney(game.lastPL)) );
-      dom.statStrategy.textContent = game.strategy? i18n[lang].stratLabel(game.strategy) : '—';
-      dom.statLR.textContent = (game.lastLR==null? '—' : (Math.round(game.lastLR*100)+'%'));
-      dom.statCR.textContent = (game.lastCR==null? '—' : (Math.round(game.lastCR*100)+'%'));
-      if (game.lastRBC==null){ dom.statRBC.textContent='—'; dom.rbcBadge.className='badge'; dom.rbcBadge.textContent=i18n[lang].rbc_badge; }
-      else{
-        dom.statRBC.textContent = game.lastRBC.toFixed(2);
-        const cls = game.lastRBC<1? 'b-bad' : (game.lastRBC<1.5? 'b-warn' : 'b-ok');
-        dom.rbcBadge.className = 'badge '+cls; dom.rbcBadge.textContent = i18n[lang].rbc_badge;
-      }
-    }
+// Sıfırla
+$("#btnReset").addEventListener("click", ()=>{
+  state = {
+    year:1, capital:100, brandScore:0, lowTrailPrev:false,
+    regime: $("#regime").value || "medium",
+    taxRate: parseFloat($("#tax").value || CONFIG.tax),
+    locked:false, current:null
+  };
+  logBody.innerHTML = "";
+  $("#eventBox").style.display = "none";
+  $("#kStatus").textContent = "Başlangıç";
+  $("#kpiStatus").className = "kpi";
+  $("#btnNext").disabled = true;
+  refreshUI();
+});
 
-    function openModal(){ dom.modal.classList.add('open') }
-    function closeModal(){ dom.modal.classList.remove('open') }
-
-    function gloss(key){
-      if(!edu) return;
-      const text = tGloss(key);
-      const tt = dom.tooltip;
-      tt.textContent = text; tt.style.display = 'block';
-      tt.style.right = '16px'; tt.style.bottom = '16px'; tt.style.left = 'auto'; tt.style.top = 'auto';
-      clearTimeout(gloss._timer); gloss._timer = setTimeout(()=>{ tt.style.display='none' }, 5000);
-    }
-
-    function leverText(){
-      const L = {'low':'Düşük','std':'Standart','high':'Yüksek','strict':'Sıkı','market':'Piyasa','loose':'Gevşek','med':'Orta'};
-      const lv = game.levers;
-      return `Komisyon: ${L[lv.commission]} • UW: ${L[lv.uw]} • Reasürans: ${L[lv.reins]} • Yatırım Riski: ${L[lv.invrisk]}`;
-    }
-
-    // ======================= Levers =======================
-    function highlightLever(group){
-      const container = document.querySelector(`[data-group="${group}"]`);
-      if(!container) return; Array.from(container.querySelectorAll('.chip-btn')).forEach(btn=>{
-        btn.classList.toggle('active', btn.getAttribute('data-val')===game.levers[group]);
-      });
-    }
-    function setLever(group, val, el){ game.levers[group]=val; highlightLever(group); }
-    function presetLevers(){
-      if(game.strategy==='conservative'){
-        game.levers = { commission:'std', uw:'strict', reins:'high', invrisk:'low' };
-      }else if(game.strategy==='aggressive'){
-        game.levers = { commission:'high', uw:'loose', reins:'low', invrisk:'high' };
-      }else{
-        game.levers = { commission:'std', uw:'market', reins:'std', invrisk:'med' };
-      }
-      ['commission','uw','reins','invrisk'].forEach(highlightLever);
-    }
-    function chooseStrategy(s){ if(s==='random') s = Math.random()<.5? 'conservative':'aggressive'; game.strategy=s; presetLevers(); refreshStats(); }
-
-    // ======================= Flow =======================
-    function nextStep(){
-      if(!game.scenario){ game.scenario = sample(nonLifeScenarios); }
-      if(!game.strategy){ alert(lang==='TR'?'Strateji seçiniz.':'Pick a strategy.'); return }
-      simulateYear();
-    }
-    function resetGame(){ location.reload(); }
-    function afterLetter(){ closeModal(); if(!game.alive || game.year>4){ showEndSummary(); return } dom.yearLabel.textContent = `Year ${game.year}`; game.strategy=null; refreshStats(); scrollTo({top:0,behavior:'smooth'}); }
-
-    // ======================= Lever effects (multipliers) =======================
-    function leverEffects(){
-      const {commission, uw, reins, invrisk} = game.levers;
-      const commExpo = commission==='high'? 1.12 : commission==='low'? 0.92 : 1.0;
-      const uwExpo   = uw==='loose'? 1.08 : uw==='strict'? 0.94 : 1.0;
-      const uwMarginAdj = uw==='strict'? +0.02 : uw==='loose'? -0.02 : 0.0;
-      const uwLossMul = uw==='loose'? 1.08 : uw==='strict'? 0.96 : 1.0;
-      const reinsRetention = reins==='high'? 0.45 : reins==='low'? 0.95 : 0.7;
-      const reinsCost = reins==='high'? 2.2 : reins==='low'? 0.6 : 1.4;
-      const commCostPerExpo = commission==='high'? 1.6 : commission==='low'? -0.6 : 0.0;
-      const invScale = invrisk==='high'? 1.5 : invrisk==='low'? 0.7 : 1.0;
-      return {commExpo, uwExpo, uwMarginAdj, uwLossMul, reinsRetention, reinsCost, commCostPerExpo, invScale};
-    }
-
-    // ======================= Simulation (Non-Life) =======================
-    function nonLifeYearModel(){
-      const yIdx = game.year-1; if(yIdx>3){ return endStub(); }
-      const y = game.scenario.years[yIdx]; const s = game.strategy;
-      const lev = leverEffects();
-
-      // Difficulty multipliers (fair by default)
-      const d = (settings.difficulty==='easy')? {cat:0.7, infl:0.0, investVol:0.8}
-                : (settings.difficulty==='hard')? {cat:1.2, infl:0.03, investVol:1.2}
-                : {cat:1.0, infl:0.0, investVol:1.0};
-
-      // Exposure & pricing with market cycle adjustment
-      let exposure = (s==='aggressive'? 1.12 : 1.00) * lev.commExpo * lev.uwExpo;
-      let priceMargin = (s==='conservative'? 0.15 : 0.11) + lev.uwMarginAdj + (game.cycleAdj||0);
-      priceMargin = Math.max(0.07, Math.min(0.24, priceMargin));
-      const retention = lev.reinsRetention;
-
-      // Premiums
-      const basePremium = 28; const premium = basePremium * exposure;
-
-      // Non‑cat claims (expected vs realized)
-      const expectedNonCat = 12.5 * exposure; // expectation baked into pricing
-      let envLossMul = { low:0.90, avg:1.00, slightlyHigh:1.20, cat:3.5 }[y.loss] || 1.00;
-      let inflMul = ({ avg:1.00, high:1.18 }[y.infl] || 1.00) * (1 + d.infl);
-      let nonCatClaimsBase = expectedNonCat * envLossMul * lev.uwLossMul * inflMul;
-      if(y.type==='crisis'){ nonCatClaimsBase *= 1.08 }
-
-      // Catastrophe severity (net of reinsurance)
-      let catLoss = 0; if(y.type==='catastrophe'){ catLoss = 45 * exposure * retention * d.cat; }
-
-      // Expense delta (only deviation vs expected is charged; expected already in margin)
-      const adminExpense = 4.2 * exposure; const reinsCost = lev.reinsCost; const commCost = Math.max(0, lev.commCostPerExpo * exposure);
-      const expectedExpense = 4.2 * exposure + 1.4; // std reins & commission baseline
-      const deltaExpense = (adminExpense + reinsCost + commCost) - expectedExpense;
-
-      // Investment income
-      let invBase = { high:0.05, avg:0.03, low:-0.04 }[y.invest] ?? 0.03; invBase *= lev.invScale * d.investVol; const invest = game.capital * invBase;
-
-      // Profit: margin minus deviations + investment
-      let pl = (premium * priceMargin) - (nonCatClaimsBase - expectedNonCat) - catLoss - deltaExpense + invest; pl = Number(pl.toFixed(1));
-      const totalClaims = Number((nonCatClaimsBase + catLoss).toFixed(1));
-
-      // Ratios
-      const lossRatio = Math.max(0, Math.min(3, totalClaims / Math.max(1, premium)));
-      const expenseActual = adminExpense + reinsCost + commCost; const expenseRatio = Math.max(0, Math.min(2, expenseActual / Math.max(1, premium)));
-      const combinedRatio = Math.max(0, Math.min(3, lossRatio + expenseRatio));
-
-      // Capital & RBC
-      const req = 35 + 0.25*premium + (y.type==='catastrophe'? 30:0) + (envLossMul>1? 10:0);
-      game.capital = Number((game.capital + pl).toFixed(1)); game.lastPL = pl; const rbc = game.capital / Math.max(1, req);
-      game.lastLR = lossRatio; game.lastRBC = rbc; game.lastCR = combinedRatio;
-
-      // Market cycle feedback for next year
-      if(combinedRatio>1.05){ game.cycleAdj = Math.min(0.05, (game.cycleAdj||0) + 0.02); }
-      else if(combinedRatio<0.95){ game.cycleAdj = Math.max(-0.03, (game.cycleAdj||0) - 0.01); }
-      if(y.type==='catastrophe'){ game.cycleAdj = Math.min(0.05, (game.cycleAdj||0) + 0.03); }
-
-      const insolvent = game.capital<=0; if(insolvent){ game.alive=false; game.year=5; }
-
-      const metaNotes = `${capFirst(y.type)} • loss:${y.loss}, infl:${y.infl}, inv:${y.invest}`;
-      const L = i18n[lang];
-      const intro = (lang==='TR'? (y.textTR||`Yıl ${game.year}: ${capFirst(y.type)} koşullar.`) : (y.textEN||`Year ${game.year}: ${capFirst(y.type)} conditions.`));
-      const decision = s==='conservative' ? (lang==='TR'?"Konservatif; yüksek reasürans, riskli bölgelerde sınırlı maruziyet." : "Conservative; higher reinsurance, limited high-risk exposure.")
-                                           : (lang==='TR'?"Agresif; büyüme odaklı, reasürans sınırlı." : "Aggressive; growth-oriented, limited reinsurance.");
-      const leverLine = `${lang==='TR'?'Kollar':'Levers'}: ${leverText()} • ${lang==='TR'?'Piyasa döngü ayarı':'Market cycle adj'}: ${(game.cycleAdj||0).toFixed(2)}`;
-      const outcome = pl>=0 ? (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> kâr. Sermaye ${formatMoney(game.capital)}.`:"Outcome: <strong>"+formatMoney(pl)+"</strong> profit. Capital "+formatMoney(game.capital)+".")
-                             : (lang==='TR'?`Sonuç: <strong>${formatMoney(pl)}</strong> zarar. Sermaye ${formatMoney(game.capital)}.`:"Outcome: <strong>"+formatMoney(pl)+"</strong> loss. Capital "+formatMoney(game.capital)+".");
-      const metrics = (lang==='TR'? `Loss Ratio: ${Math.round(lossRatio*100)}% • Expense Ratio: ${Math.round(expenseRatio*100)}% • Combined: ${Math.round(combinedRatio*100)}% • RBC: ${rbc.toFixed(2)}` :
-                                   `Loss Ratio: ${Math.round(lossRatio*100)}% • Expense Ratio: ${Math.round(expenseRatio*100)}% • Combined: ${Math.round(combinedRatio*100)}% • RBC: ${rbc.toFixed(2)}`);
-
-      // Causal details
-      const details = nonLifeCausalDetails({y,lev,invBase,retention,lossRatio,expenseRatio,combinedRatio});
-
-      const riskNote = (game.capital<=0)? (lang==='TR'?"Cata yılı kayıpları sermayeyi negatife itti; şirket iflas etti." : "Catastrophe losses pushed capital negative; insolvency.")
-        : ( y.type==='catastrophe' && retention>0.9 ? (lang==='TR'?"Yüksek retansiyon net kaybı büyüttü." : "High retention magnified net loss.")
-          : y.type==='catastrophe' && retention<0.6 ? (lang==='TR'?"Reasürans limitleri büyük kısmı karşıladı; şirket ayakta." : "Reinsurance covered much of it; company survives.")
-          : (lang==='TR'?"Bir sonraki yıl için risk iştahını seç." : "Pick next year's risk appetite."));
-
-      game.history.push({year:game.year, pl, capital:game.capital, type:y.type, strategy:s, lr:lossRatio, rbc, expenseRatio, combinedRatio, premium});
-      return { year:game.year, strategy:s, yearType:y.type, metaNotes, narrative:[intro, decision, leverLine, outcome, metrics, details, riskNote] };
-    }
-
-    function nonLifeCausalDetails(ctx){
-      const {y,lev,invBase,retention,lossRatio,expenseRatio,combinedRatio} = ctx; const TR = (lang==='TR');
-      const lines = [];
-      const scen = game.scenario?.name || '';
-      if(y.type==='catastrophe'){
-        let hazard = TR? 'Katastrofik olay' : 'Catastrophic event';
-        if(/Marmara/i.test(scen)) hazard = TR? 'Bölgesel <strong>deprem</strong>' : 'Regional <strong>earthquake</strong>';
-        else if(/Hurricane/i.test(scen)) hazard = TR? '<strong>Kasırga</strong>' : '<strong>Hurricane</strong>';
-        else if(/Flood|Black Sea/i.test(scen)) hazard = TR? '<strong>Sel/heyelan</strong>' : '<strong>Flood/landslide</strong>';
-        else if(/Fire/i.test(scen)) hazard = TR? '<strong>Endüstriyel yangın</strong>' : '<strong>Industrial fire</strong>';
-        lines.push(TR? `${hazard} geniş alanda hasara yol açtı; retansiyon düzeyi net kaybı belirledi.` : `${hazard} caused widespread damage; retention level set the net loss.`);
-      }
-      if(y.infl==='high' || y.type==='crisis'){
-        lines.push(TR? 'Yüksek <strong>enflasyon</strong> malzeme/işçilik ve yeniden inşa maliyetlerini artırdı; dosya başı şiddet yükseldi.' : 'High <strong>inflation</strong> raised material/labour and rebuild costs; claim severity increased.');
-        lines.push(TR? 'Bazı <strong>sigorta bedelleri</strong> enflasyona yetişemedi; eksik sigortalılık ve daha uzun dosya kapanış süreleri görüldü.' : 'Some <strong>sums insured</strong> lagged inflation; underinsurance disputes and longer settlement times emerged.');
-      }
-      if(lev.commExpo>1.01){ lines.push(TR? 'Yüksek <strong>komisyon</strong> ile satış kanalları agresifleşti; üretim arttı fakat gider oranı yükseldi.' : 'High <strong>commissions</strong> energized channels; growth up but expense ratio increased.'); }
-      if(lev.uwLossMul>1.01){ lines.push(TR? 'Gevşek <strong>underwriting</strong> riskli bölgelerde poliçe sayısını artırdı; frekans ve şiddet eğilimi bozuldu.' : 'Looser <strong>underwriting</strong> grew in high-risk zones; frequency and severity trends worsened.'); }
-      if(retention<0.6){ lines.push(TR? '<strong>Yüksek reasürans</strong> büyük şoku sönümledi; ancak yıllık reasürans maliyeti kârlılığı kesti.' : '<strong>High reinsurance</strong> absorbed the shock; annual reinsurance cost trimmed profitability.'); }
-      if(retention>0.9){ lines.push(TR? '<strong>Yüksek retansiyon</strong> cata yılında özkaynakları zorladı.' : '<strong>High retention</strong> strained equity in the cat year.'); }
-      if(invBase<0){ lines.push(TR? 'Piyasa düşüşüyle <strong>yatırım zararı</strong> oluştu; teknik açıklar kapatılamadı.' : 'Market downturn led to <strong>investment losses</strong>; underwriting gaps remained.'); }
-      else if(invBase>0.045){ lines.push(TR? 'Piyasa <strong>toparlanması</strong> yatırım gelirini destekledi; teknik sonucu kısmen tamponladı.' : 'Market <strong>rebound</strong> supported investment income; partially cushioned underwriting.'); }
-      if(combinedRatio>1){ lines.push(TR? '<strong>Combined %100+</strong>: fiyatlama/seleksiyon ve giderler kârlılığın üzerine çıktı.' : '<strong>Combined >100%</strong>: pricing/selection and expenses exceeded profitability.'); }
-      const title = TR? 'Detaylar' : 'Details';
-      return `<strong>${title}</strong>` + (lines.length? '<ul>'+lines.map(x=>`<li>${x}</li>`).join('')+'</ul>' : '');
-    }
-
-    // ======================= Sim loop & modal =======================
-    function simulateYear(){
-      const plan = nonLifeYearModel();
-      const L = i18n[lang];
-      const ribbonMap = {cat:L.ribbon_cat, crisis:L.ribbon_crisis, normal:L.ribbon_normal};
-      dom.ribbon.textContent = ribbonMap[plan.yearType] || L.ribbon_normal;
-      dom.ribbon.className = 'ribbon ' + (plan.yearType==='catastrophe'? 'cat' : (plan.yearType==='crisis'? 'crisis' : 'ok'));
-      dom.ltitle.textContent = `Emlak — Year ${plan.year}`;
-      dom.lmeta.textContent = L.letterMeta(game.scenario.name, i18n[lang].stratLabel(plan.strategy), plan.metaNotes);
-      dom.lbody.innerHTML = plan.narrative.map(p=>{p=p+''; return p.trim().startsWith('<')? p : `<p>${p}</p>`}).join('');
-      openModal();
-      game.year += 1; setYearbarActive(); refreshStats();
-    }
-
-    function endStub(){ return {year:4, strategy:game.strategy, yearType:'normal', metaNotes:'—', narrative:['Projection finished.']} }
-
-    function showEndSummary(){
-      const L = i18n[lang];
-      const summary = document.createElement('div');
-      summary.className = 'letter';
-      const survived = game.alive;
-      summary.innerHTML = `
-        <div class="ribbon ${survived?'ok':'crisis'}">${survived?L.ribbon_normal:L.ribbon_crisis}</div>
-        <h3>${L.end_summary}</h3>
-        <div class="meta">${game.scenario?.name||'—'}</div>
-        ${L.end_lines(formatMoney(game.capital), survived).map(p=>`<p>${p}</p>`).join('')}
-        <div class="hr"></div>
-        <p><strong>Yıllık iz:</strong></p>
-        <ul>
-          ${game.history.map(h=>`<li>Y${h.year} • ${h.type} • Strat=${i18n[lang].stratLabel(h.strategy)} • P/L=${formatMoney(h.pl)} • CR=${Math.round((h.combinedRatio||0)*100)}% • RBC=${(h.rbc||0).toFixed(2)}</li>`).join('')}
-        </ul>
-        <div class="letter-actions">
-          <button onclick="location.reload()">${lang==='TR'?'Yeniden Oyna':'Play Again'}</button>
-        </div>`;
-      const m = document.createElement('div'); m.className='modal open'; m.appendChild(summary); document.body.appendChild(m);
-    }
-
-    // ======================= Init =======================
-    function setYear1(){ dom.yearLabel.textContent = `Year ${game.year}`; setYearbarActive(); refreshStats(); presetLevers(); }
-    function init(){ applyLang(); setYear1(); }
-    document.addEventListener('DOMContentLoaded', init);
-  </script>
+/* ====== yardımcılar ====== */
+function weightedPick(arr){
+  const r = Math.random();
+  let acc = 0;
+  for(const x of arr){
+    acc += x.p;
+    if(r <= acc) return x;
+  }
+  return arr[arr.length-1];
+}
+function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+function appendLog(row){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${row.year}</td>
+    <td>${row.ev}</td>
+    <td>${labelPricing(row.pr)}</td>
+    <td>${labelUW(row.uw)}</td>
+    <td>${labelChannel(row.ch)}</td>
+    <td>${labelAds(row.ad)}</td>
+    <td>${row.pol}</td>
+    <td>${fmt(row.gwp)}</td>
+    <td>${(row.lr*100).toFixed(1)}%</td>
+    <td>${fmt(row.paid)}</td>
+    <td>${fmt(row.res)}</td>
+    <td>${fmt(row.comm)}</td>
+    <td>${fmt(row.ads)}</td>
+    <td>${fmt(row.preTax)}</td>
+    <td>${fmt(row.tax)}</td>
+    <td>${fmt(row.postTax)}</td>
+    <td>${fmt(row.capital)}</td>
+  `;
+  logBody.appendChild(tr);
+}
+function fmt(x){ return (x>=0? "" : "−") + Math.abs(x).toFixed(2); }
+function labelPricing(k){ return k==="cheap"?"Ucuz":k==="mid"?"Orta":"Pahalı"; }
+function labelUW(k){ return k==="loose"?"Gevşek":k==="mid"?"Orta":"Sıkı"; }
+function labelChannel(k){ return k==="agent"?"Acente":k==="balanced"?"Dengeli":"Dijital"; }
+function labelAds(k){ return k==="low"?"Düşük":k==="mid"?"Orta":"Yüksek"; }
+function disableAll(){
+  ["btnRoll","btnClose","btnNext"].forEach(id=>{ const e=$( "#"+id ); e.disabled=true; });
+}
+</script>
 </body>
 </html>
-"""
-from pathlib import Path
-Path("/mnt/data/index.html").write_text(html, encoding="utf-8")
-print("Saved to /mnt/data/index.html")
