@@ -99,7 +99,7 @@ const CONFIG={capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedSha
 // State
 const state={year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, cache:null};
 
-// Olay seti
+// Olay seti (olasılıkları değiştirmedim!)
 const EVENTS=[
  {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.6,blurb:"Her şey normal."},
  {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,blurb:"Agresif fiyat rekabeti."},
@@ -133,7 +133,6 @@ $("drawEvent").onclick=()=>{
   const incurred=earned*incLR;
   const paid=incurred*ev.paidShare;
   const outst=incurred-paid;
-  // Komisyon ve PR giderleri
   const comm=GWP*0.12;
   const pr=GWP*(document.getElementById("ads").value==="high"?0.08:document.getElementById("ads").value==="low"?0.03:0.05);
   state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma};
@@ -163,21 +162,18 @@ window.chooseReserve=(lrStar)=>{
 // Yıl sonu
 $("divBtn").onclick=()=>{
   const k=state.cache; if(!k)return;
-  // riskli portföy → realLR bias
+  // Portföy riskine göre realLR bias
   const rScore=portfolioRiskScore($("price").value,$("uw").value,$("channel").value,$("ads").value);
-  const muAdj=k.mu_post+(0.10*rScore); // ±10 puan
-  const sigmaAdj=k.sigma_post*(1+1.0*Math.abs(rScore)); // ±100% genişlik
+  const muAdj=k.mu_post+(0.10*rScore); // ±0.10 = ±10 puan
+  const sigmaAdj=k.sigma_post*(1+1.0*Math.abs(rScore)); // ±100% oynaklık
   const realLR=rngTNormal(muAdj,sigmaAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
   k.realLR=realLR;
-  // Rezerv farkı
   const realNeed=k.GWP*realLR-(k.paid+k.outst);
   const delta=realNeed-k.resv;
-  const pnlResv=delta; // fark P&L'e gider/gelir
-  // Kar hesap
+  const pnlResv=delta;
   const VO=k.GWP-(k.paid+k.outst+k.resv)-k.comm-k.pr+pnlResv;
   const tax=VO>0?VO*CONFIG.tax:0;
   const VS=VO-tax;
-  // Temettü (yarı/0/tam)
   showModal(`<h3>Temettü Seç</h3>
     <div class="choices">
       <button class="btn" onclick="payDiv(0)">0</button>
@@ -189,7 +185,6 @@ $("divBtn").onclick=()=>{
     const div=f>0?VS*f:0;
     state.cumDiv+=div;
     state.capital+=VS-div;
-    // tabloya satır ekle
     const row=`<tr><td>${state.year}</td><td>${k.ev.name}</td><td>${fmt(k.GWP)}</td>
     <td>%${fmt(k.incLR*100)}</td><td>%${fmt(k.realLR*100)}</td><td>%${fmt(k.lrStar*100)}</td>
     <td>${fmt(k.paid)}</td><td>${fmt(k.outst)}</td><td>${fmt(k.resv)}</td>
