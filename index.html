@@ -3,436 +3,216 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Watcher — Bayes Rezerv Oyunu (EP=50%, güncel)</title>
+<title>Watcher — Bayes Rezerv Oyunu</title>
 <style>
-  :root{--bg:#0f172a;--panel:#0b1023;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--bad:#ef4444}
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  body{margin:0;background:linear-gradient(180deg,#0b1023,#0f172a 25%,#0f172a);color:var(--ink)}
-  header{position:sticky;top:0;background:#0f172a;padding:14px;border-bottom:1px solid #1f2937;z-index:5}
-  h1{margin:0;font-size:18px}
-  .wrap{max-width:1320px;margin:0 auto;padding:14px;display:grid;gap:14px}
-  .grid{display:grid;gap:14px}
-  .cols-4{grid-template-columns:1.2fr 1fr 1fr 0.9fr}
-  .card{background:var(--card);border:1px solid #1f2937;border-radius:12px;padding:14px}
-  h2{margin:0 0 10px 0;font-size:16px}
-  label{display:block;color:var(--muted);font-size:12px;margin:8px 0 4px}
-  select{width:100%;padding:9px;border-radius:10px;border:1px solid #334155;background:#0b1023;color:#fff}
-  .row{display:flex;gap:8px;align-items:center}
-  .row>div{flex:1}
-  .btn{appearance:none;border:1px solid #334155;background:#0b1023;color:#fff;border-radius:10px;padding:9px 12px;cursor:pointer}
-  .btn.primary{background:var(--accent);border-color:#22c55e;color:#04121a;font-weight:600}
+  :root{--bg:#0f172a;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--bad:#ef4444}
+  body{margin:0;background:#0f172a;color:var(--ink);font-family:Inter,system-ui}
+  header{padding:12px;border-bottom:1px solid #1f2937}
+  h1{font-size:18px;margin:0}
+  .wrap{max-width:1280px;margin:auto;padding:14px;display:grid;gap:14px}
+  .cols-4{display:grid;grid-template-columns:1.1fr 1fr 1fr 0.9fr;gap:14px}
+  .card{background:var(--card);border:1px solid #1f2937;border-radius:10px;padding:12px}
+  h2{margin:0 0 8px;font-size:15px}
+  select,.btn{width:100%;padding:8px;border-radius:8px;border:1px solid #334155;background:#0b1023;color:#fff}
+  .btn{cursor:pointer;margin-top:6px}
+  .btn.primary{background:var(--accent);color:#000;font-weight:600}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  .hr{height:1px;background:#1f2937;margin:12px 0}
-  .muted{color:var(--muted);font-size:12px}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
   table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{border-bottom:1px solid #1f2937;padding:6px 8px;text-align:left;vertical-align:top}
-  th{color:#cbd5e1;position:sticky;top:0;background:#0e162a;z-index:1}
+  th,td{border-bottom:1px solid #1f2937;padding:6px 8px;text-align:left}
+  th{position:sticky;top:0;background:#0e162a}
+  .face{font-size:40px}
   .ok{color:var(--ok)}.bad{color:var(--bad)}
-  .face{font-size:42px;line-height:1}
-  .pill{display:inline-block;padding:3px 8px;border-radius:999px;border:1px solid #334155;color:#cbd5e1;font-size:12px}
-  .modal{position:fixed;inset:0;background:rgba(2,6,23,.6);display:none;align-items:center;justify-content:center;z-index:50}
-  .modal .box{background:#0b1023;border:1px solid #334155;border-radius:12px;padding:16px;max-width:720px;width:92%}
-  .spinner{width:28px;height:28px;border:3px solid #334155;border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;margin-right:8px}
-  @keyframes spin{to{transform:rotate(360deg)}}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal .box{background:#111827;padding:16px;border-radius:12px;width:90%;max-width:600px}
   .choices{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .choices .btn{flex:1}
 </style>
 </head>
 <body>
-<header><h1>🕹️ Watcher — Bayes Rezerv Oyunu (EP=50%)</h1></header>
-
+<header><h1>🕹️ Watcher — Bayes Rezerv Oyunu</h1></header>
 <div class="wrap">
-  <!-- ÜST: 4 panel -->
-  <section class="grid cols-4">
-    <!-- 1) Konfig + Portföy -->
+  <section class="cols-4">
+    <!-- Panel 1 -->
     <div class="card">
-      <h2>Oyun Konfigürasyonu</h2>
-      <div class="mono">
-        Başlangıç Sermayesi: 100<br/>
-        Vergi Oranı: %20<br/>
-        Baz GWP: 90 <span class="muted">(≈ sermayenin %90’ı)</span>
-      </div>
-      <div class="hr"></div>
       <h2>1) Yıl Başı — Portföy</h2>
-      <div class="row">
-        <div>
-          <label>Fiyatlama</label>
-          <select id="price"><option value="cheap">Ucuz</option><option value="mid" selected>Orta</option><option value="exp">Pahalı</option></select>
-        </div>
-        <div>
-          <label>Underwriting</label>
-          <select id="uw"><option value="loose">Gevşek</option><option value="mid" selected>Orta</option><option value="strict">Sıkı</option></select>
-        </div>
-      </div>
-      <div class="row">
-        <div>
-          <label>Satış Kanalı</label>
-          <select id="channel"><option value="agent">Acente</option><option value="balanced" selected>Dengeli</option><option value="digital">Dijital</option></select>
-        </div>
-        <div>
-          <label>PR / Reklam</label>
-          <select id="ads"><option value="low">Düşük</option><option value="mid" selected>Orta</option><option value="high">Yüksek</option></select>
-        </div>
-      </div>
-      <div class="hr"></div>
+      <label>Fiyatlama</label>
+      <select id="price"><option value="cheap">Ucuz</option><option value="mid" selected>Orta</option><option value="exp">Pahalı</option></select>
+      <label>Underwriting</label>
+      <select id="uw"><option value="loose">Gevşek</option><option value="mid" selected>Orta</option><option value="strict">Sıkı</option></select>
+      <label>Satış Kanalı</label>
+      <select id="channel"><option value="agent">Acente</option><option value="balanced" selected>Dengeli</option><option value="digital">Dijital</option></select>
+      <label>PR / Reklam</label>
+      <select id="ads"><option value="low">Düşük</option><option value="mid" selected>Orta</option><option value="high">Yüksek</option></select>
       <button class="btn primary" id="startYear">Yılı Başlat</button>
       <button class="btn" id="drawEvent" disabled>🎲 Olayı Çek</button>
-      <button class="btn" id="resetGame">Oyunu Sıfırla</button>
-      <div class="hr"></div>
-      <div id="eventBadge" class="muted">Olay: —</div>
-      <div id="midInfo" class="mono" style="margin-top:6px"></div>
+      <button class="btn" id="resetGame">Sıfırla</button>
+      <div id="eventBadge" class="mono" style="margin-top:6px">Olay: —</div>
+      <div id="midInfo" class="mono"></div>
     </div>
-
-    <!-- 2) Yıl ortası (Rezerv) -->
+    <!-- Panel 2 -->
     <div class="card">
-      <h2>2) Yıl Ortası — Rezerv Kararı</h2>
-      <p class="muted">Olaydan sonra aktif olur. Önce incurred sonucu tabloda görünür.</p>
+      <h2>2) Yıl Ortası — Rezerv</h2>
       <button class="btn" id="reserveBtn" disabled>ULR nasıl gelişir?</button>
-      <div class="hr"></div>
-      <div id="midPanel" class="mono"></div>
+      <div id="midPanel" class="mono" style="margin-top:8px"></div>
     </div>
-
-    <!-- 3) Yıl sonu (Temettü) -->
+    <!-- Panel 3 -->
     <div class="card">
       <h2>3) Yıl Sonu — Temettü</h2>
-      <p class="muted">Rezerv seçiminden sonra aktif olur.</p>
       <button class="btn" id="divBtn" disabled>Temettü Seçimi</button>
-      <div class="hr"></div>
-      <div id="endPanel" class="mono"></div>
+      <div id="endPanel" class="mono" style="margin-top:8px"></div>
     </div>
-
-    <!-- 4) CEO/Sermayedar -->
+    <!-- Panel 4 -->
     <div class="card">
-      <h2>4) Sermayedar / CEO Paneli</h2>
+      <h2>4) CEO / Sermayedar</h2>
       <div id="ceoFace" class="face">🙂</div>
-      <div class="hr"></div>
       <div id="ceoStats" class="mono"></div>
-      <div class="hr"></div>
-      <div id="statusBox" class="mono"></div>
+      <div id="statusBox" class="mono" style="margin-top:6px"></div>
     </div>
   </section>
-
-  <!-- ALT: Yıl Sonuçları -->
+  <!-- Alt tablo -->
   <section class="card">
     <h2>Yıl Sonuçları</h2>
-    <div style="max-height:460px;overflow:auto;border:1px solid #223047;border-radius:10px">
-      <table id="yearsTbl">
-        <thead>
-          <tr>
-            <th>Yıl</th><th>Olay</th><th>GWP</th><th>incLR</th><th>realLR</th><th>LR*</th>
-            <th>Ödenen</th><th>Muallak</th><th>Seçilen Rezerv</th><th>P&L Rezerv</th>
-            <th>Kom.</th><th>PR</th><th>VÖ</th><th>Vergi</th><th>VS</th><th>Temettü</th><th>Yıl Sonu Sermaye</th><th>Band</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+    <table id="yearsTbl">
+      <thead><tr>
+        <th>Yıl</th><th>Olay</th><th>GWP</th><th>incLR</th><th>realLR</th><th>LR*</th>
+        <th>Ödenen</th><th>Muallak</th><th>Rezerv</th><th>Kom.</th><th>PR</th>
+        <th>VÖ</th><th>Vergi</th><th>VS</th><th>Temettü</th><th>Sermaye</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
   </section>
 </div>
-
 <!-- Modal -->
-<div id="modal" class="modal" role="dialog" aria-modal="true"><div class="box" id="modalBox"></div></div>
-
+<div id="modal" class="modal"><div class="box" id="modalBox"></div></div>
 <script>
-(function(){
-  // ---------- helpers ----------
-  const $=id=>document.getElementById(id);
-  const showModal=html=>{ $("modalBox").innerHTML=html; $("modal").style.display="flex"; };
-  const closeModal=()=>{ $("modal").style.display="none"; };
-  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-  const fmt=(x,d=2)=>Number(x).toFixed(d);
-  function rngNormal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return mu+sigma*z;}
-  function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,sigma);if(x>=a&&x<=b)return x;}return clamp(mu,a,b);}
-  const band=cap=>cap>=100?"H":cap>=75?"M":cap>=50?"L":"Z";
+const $=id=>document.getElementById(id);
+const showModal=html=>{ $("modalBox").innerHTML=html; $("modal").style.display="flex"; };
+const closeModal=()=>{ $("modal").style.display="none"; };
+const fmt=(x,d=2)=>Number(x).toFixed(d);
+function rngNormal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();const z=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);return mu+sigma*z;}
+function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,sigma);if(x>=a&&x<=b)return x;}return Math.max(a,Math.min(b,mu));}
 
-  // ---------- config & state ----------
-  const CONFIG = {
-    capital0: 100,
-    taxRate: 0.20,
-    baseGwp: 90,
-    sigma0: 0.05, sigmaMin: 0.02, sigmaMax: 0.20,
-    tau_c: 0.10,
-    tau_kappa: {normal:1.00, pricewar:1.15, cat:1.40, pr:1.10},
-    lrBounds: [0.35,1.40],
-    earnedShareMid: 0.50,
+// Config
+const CONFIG={capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedShare:0.5};
+
+// State
+const state={year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, cache:null};
+
+// Olay seti
+const EVENTS=[
+ {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.6,blurb:"Her şey normal."},
+ {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,blurb:"Agresif fiyat rekabeti."},
+ {key:"cat",name:"CAT",mu:0.80,sigma:0.08,paidShare:0.7,blurb:"Felaket yılı, büyük hasar."},
+ {key:"pr",name:"PR Krizi",mu:0.66,sigma:0.06,paidShare:0.58,blurb:"İmaj kaybı, masraflar artar."}
+];
+
+// Risk puanı
+function portfolioRiskScore(price,uw,channel,ads){
+  let s=0;
+  if(price==="cheap")s+=0.6; else if(price==="exp")s-=0.4;
+  if(uw==="loose")s+=0.8; else if(uw==="strict")s-=0.6;
+  if(channel==="agent")s+=0.2; else if(channel==="digital")s-=0.1;
+  if(ads==="high")s+=0.1; else if(ads==="low")s-=0.05;
+  return Math.max(-1,Math.min(1,s/1.5));
+}
+
+// Başlat
+$("startYear").onclick=()=>{
+  $("drawEvent").disabled=false;
+  state.cache=null;
+};
+
+// Olay çek
+$("drawEvent").onclick=()=>{
+  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
+  const GWP=CONFIG.baseGwp;
+  const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
+  const earned=GWP*CONFIG.earnedShare;
+  const incurred=earned*incLR;
+  const paid=incurred*ev.paidShare;
+  const outst=incurred-paid;
+  // Komisyon ve PR giderleri
+  const comm=GWP*0.12;
+  const pr=GWP*(document.getElementById("ads").value==="high"?0.08:document.getElementById("ads").value==="low"?0.03:0.05);
+  state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma};
+  $("reserveBtn").disabled=false;
+  $("midInfo").innerText=`incLR=%${fmt(incLR*100)} | Ödenen=${fmt(paid)} | Muallak=${fmt(outst)}`;
+};
+
+// Rezerv seçimi
+$("reserveBtn").onclick=()=>{
+  const k=state.cache; if(!k)return;
+  showModal(`<h3>ULR nasıl gelişir?</h3>
+    <div class="choices">
+      <button class="btn" onclick="chooseReserve(0.60)">%60</button>
+      <button class="btn" onclick="chooseReserve(0.75)">%75</button>
+      <button class="btn" onclick="chooseReserve(0.90)">%90</button>
+    </div>`);
+};
+window.chooseReserve=(lrStar)=>{
+  closeModal();
+  const k=state.cache;
+  const need=k.GWP*lrStar-(k.paid+k.outst);
+  k.lrStar=lrStar; k.resv=Math.max(0,need);
+  $("divBtn").disabled=false;
+  $("midPanel").innerText=`Seçilen ULR hedefi=%${fmt(lrStar*100)}, Rezerv=${fmt(k.resv)}`;
+};
+
+// Yıl sonu
+$("divBtn").onclick=()=>{
+  const k=state.cache; if(!k)return;
+  // riskli portföy → realLR bias
+  const rScore=portfolioRiskScore($("price").value,$("uw").value,$("channel").value,$("ads").value);
+  const muAdj=k.mu_post+(0.10*rScore); // ±10 puan
+  const sigmaAdj=k.sigma_post*(1+1.0*Math.abs(rScore)); // ±100% genişlik
+  const realLR=rngTNormal(muAdj,sigmaAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
+  k.realLR=realLR;
+  // Rezerv farkı
+  const realNeed=k.GWP*realLR-(k.paid+k.outst);
+  const delta=realNeed-k.resv;
+  const pnlResv=delta; // fark P&L'e gider/gelir
+  // Kar hesap
+  const VO=k.GWP-(k.paid+k.outst+k.resv)-k.comm-k.pr+pnlResv;
+  const tax=VO>0?VO*CONFIG.tax:0;
+  const VS=VO-tax;
+  // Temettü (yarı/0/tam)
+  showModal(`<h3>Temettü Seç</h3>
+    <div class="choices">
+      <button class="btn" onclick="payDiv(0)">0</button>
+      <button class="btn" onclick="payDiv(0.5)">%50</button>
+      <button class="btn" onclick="payDiv(1)">%100</button>
+    </div>`);
+  window.payDiv=(f)=>{
+    closeModal();
+    const div=f>0?VS*f:0;
+    state.cumDiv+=div;
+    state.capital+=VS-div;
+    // tabloya satır ekle
+    const row=`<tr><td>${state.year}</td><td>${k.ev.name}</td><td>${fmt(k.GWP)}</td>
+    <td>%${fmt(k.incLR*100)}</td><td>%${fmt(k.realLR*100)}</td><td>%${fmt(k.lrStar*100)}</td>
+    <td>${fmt(k.paid)}</td><td>${fmt(k.outst)}</td><td>${fmt(k.resv)}</td>
+    <td>${fmt(k.comm)}</td><td>${fmt(k.pr)}</td>
+    <td>${fmt(VO)}</td><td>${fmt(tax)}</td><td>${fmt(VS)}</td><td>${fmt(div)}</td><td>${fmt(state.capital)}</td></tr>`;
+    $("yearsTbl").querySelector("tbody").insertAdjacentHTML("beforeend",row);
+    updateCEO();
+    state.year++; $("drawEvent").disabled=true; $("reserveBtn").disabled=true; $("divBtn").disabled=true;
   };
-  const state = {
-    year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100,
-    event:null, cache:null, currentRow:null
-  };
+};
 
-  // Senaryolar — açıklamalar ekli
-  const EVENTS = [
-    {key:"normal",   name:"Normal",       p:0.50,   mu:0.65, sigmaMul:1.00, volMul:1.00, paidShare:0.60,
-     blurb:"Her şey beklenildiği gibi. Ortalama LR ve oynaklık normal."},
-    {key:"pricewar", name:"Fiyat Savaşı", p:0.1667, mu:0.74, sigmaMul:1.15, volMul:1.08, paidShare:0.52,
-     blurb:"Agresif fiyat rekabeti: hacim artar, LR ortalaması belirgin yükselir; oynaklık da artar."},
-    {key:"cat",      name:"CAT",          p:0.1667, mu:0.85, sigmaMul:1.35, volMul:1.00, paidShare:0.35,
-     blurb:"Felaket yılı: tail ağır. Ortalama LR yüksek, belirsizlik çok yüksek; ödemeler daha geç geliyor."},
-    {key:"pr",       name:"PR Krizi",     p:0.1667, mu:0.68, sigmaMul:1.10, volMul:0.95, paidShare:0.48,
-     blurb:"İtibar darbesi: hacim düşebilir; hasar ortalaması hafif yükselir, oynaklık artar."},
-  ];
+// CEO panel
+function updateCEO(){
+  const ratio=state.cumDiv/state.capital;
+  $("ceoStats").innerText=`Sermaye=${fmt(state.capital)} | Kümülatif Temettü=${fmt(state.cumDiv)} | Oran=%${fmt(ratio*100)}`;
+  if(state.capital<50){$("ceoFace").innerText="💀";$("statusBox").innerText="İflas!";return;}
+  if(ratio<0.1 && state.year>2){$("ceoFace").innerText="😡";$("statusBox").innerText="CEO görevden alındı!";return;}
+  $("ceoFace").innerText= ratio>=0.2?"😃":"🙂";
+  $("statusBox").innerText="Oyuna devam...";
+}
 
-  // σ katkıları ve GWP çarpanları
-  const dPrice=v=>v==="cheap"?+0.025:v==="exp"?-0.015:0;
-  const dUW=v=>v==="loose"?+0.035:v==="strict"?-0.025:0;
-  const dChannel=v=>v==="agent"?+0.008:v==="digital"?-0.004:0;
-  const dAds=v=>v==="low"?+0.004:v==="high"?-0.004:0;
-
-  const fPrice=v=>v==="cheap"?1.30:v==="exp"?0.85:1.10;
-  const fUW=v=>v==="loose"?1.10:v==="strict"?0.90:1.00;
-  const fChannel=v=>v==="agent"?1.10:v==="digital"?0.95:1.00;
-  const fAds=level=>{const L={low:0,mid:1,high:2}[level];return 1+0.08*L-0.02*L*L;};
-
-  // masraf oranları
-  const commPct=ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12;
-  const adsPct=level=>level==="low"?0.01:level==="high"?0.06:0.03;
-
-  // regülasyon (medium)
-  function regulationCheck(newCap){
-    if(newCap<50){ if(!state.warned){state.warned=true; return {fail:false,warn:true};} return {fail:true,warn:false}; }
-    return {fail:false,warn:false};
-  }
-
-  // CEO panel
-  function setFace(r){$("ceoFace").textContent = r<0.10 ? "☹️" : (r<0.15 ? "😐" : "🙂");}
-  function renderCEO(note=""){
-    const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
-    state.score = Math.round(Math.max(0, Math.min(200, 100 + (ratio-0.10)*1000)));
-    setFace(ratio);
-    $("ceoStats").innerText = `Skor: ${state.score} / 200\nMutluluk Oranı (Kümül. Temettü / Sermaye): ${(ratio*100).toFixed(1)}%`;
-    $("statusBox").innerText = note || `Yıl ${state.year-1} kapandı. Yeni yıl için "Yılı Başlat" → "Olayı Çek".`;
-  }
-  renderCEO(`Oyun hazır. "Yılı Başlat" → "Olayı Çek".`);
-
-  // tablo yardımcıları
-  function ensureRowForYear(y){
-    const tb = document.querySelector("#yearsTbl tbody");
-    let tr = tb.querySelector(`tr[data-year="${y}"]`);
-    if(!tr){
-      tr = document.createElement("tr");
-      tr.dataset.year = y;
-      tr.innerHTML = "<td>"+y+"</td>"+("<td>—</td>".repeat(17));
-      tb.prepend(tr);
-    }
-    state.currentRow = tr;
-    return tr;
-  }
-  function setCell(idx, html){
-    if(!state.currentRow) return;
-    const tds = state.currentRow.children;
-    if(tds[idx]) tds[idx].innerHTML = html;
-  }
-
-  // ==== butonlar ====
-  $("resetGame").addEventListener("click", ()=>{
-    Object.assign(state,{year:1, capital:CONFIG.capital0, cumDiv:0, warned:false, score:100, event:null, cache:null, currentRow:null});
-    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
-    $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=true;
-    document.querySelector("#yearsTbl tbody").innerHTML="";
-    renderCEO("Oyun sıfırlandı.");
-  });
-
-  $("startYear").addEventListener("click", ()=>{
-    if(state.year===1) state.capital=CONFIG.capital0;
-    state.event=null; state.cache=null;
-    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText=`Yıl ${state.year} başladı. Sermaye: ${fmt(state.capital)}.`;
-    $("drawEvent").disabled=false; $("reserveBtn").disabled=true; $("divBtn").disabled=true;
-    ensureRowForYear(state.year);             // ← satır ekle
-    for(let i=1;i<=17;i++) setCell(i,"—");    // boşalt
-  });
-
-  $("drawEvent").addEventListener("click", ()=>{
-    showModal(`<div style="display:flex;align-items:center;gap:10px"><span class="spinner"></span><div><b>Olay belirleniyor…</b><br/><span class="muted">Zar atılıyor, 5 saniye sonra açıklanacak.</span></div></div>`);
-    setTimeout(()=>{
-      const u=Math.random(); let acc=0, ev=EVENTS[0];
-      for(const e of EVENTS){acc+=e.p;if(u<=acc){ev=e;break;}}
-      state.event=ev;
-      $("eventBadge").innerHTML=`Olay: <span class="pill">${ev.name}</span>`;
-      $("modalBox").innerHTML = `
-        <div>
-          <b>Bu yılın olayı:</b> <span class="pill">${ev.name}</span>
-          <div class="hr"></div>
-          <div class="muted">${ev.blurb}<br><span class="mono">Not:</span> Yıl ortasında <b>EP = GWP × 0.50</b> kullanılır.</div>
-          <div class="hr"></div>
-          <button class="btn primary" id="okEv">Devam</button>
-        </div>`;
-      $("okEv").onclick=()=>{ closeModal(); afterEventIncurred(); };
-    }, 5000);
-  });
-
-  function afterEventIncurred(){
-    const ev = state.event; if(!ev) return;
-    const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
-
-    // GWP ve EP_mid
-    const GWP = CONFIG.baseGwp * fPrice(price) * fUW(uw) * fChannel(ch) * fAds(ads) * ev.volMul;
-    const EP_mid = GWP * CONFIG.earnedShareMid;
-
-    // PRIOR σ
-    let sigma_prior = CONFIG.sigma0 + dPrice(price)+dUW(uw)+dChannel(ch)+dAds(ads);
-    sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax) * ev.sigmaMul;
-    sigma_prior = clamp(sigma_prior, CONFIG.sigmaMin, CONFIG.sigmaMax);
-
-    const mu_event = ev.mu;
-
-    // incLR gözlemi (EP bazlı)
-    const sigma_pre = clamp(0.7*sigma_prior, CONFIG.sigmaMin*0.9, CONFIG.sigmaMax);
-    const lr_inc = rngTNormal(mu_event, sigma_pre, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-    const incurred_to_date = EP_mid * lr_inc;
-
-    // paid/outstanding
-    const paid = incurred_to_date * ev.paidShare;
-    const outstanding = incurred_to_date - paid;
-
-    // Bayes güncelle
-    const tau = CONFIG.tau_c * CONFIG.tau_kappa[ev.key] / Math.sqrt(Math.max(ev.paidShare,0.2));
-    const var_prior = sigma_prior*sigma_prior, var_tau = tau*tau;
-    const var_post = 1/(1/var_prior + 1/var_tau);
-    const sigma_post = Math.sqrt(var_post);
-    const mu_post = var_post*(mu_event/var_prior + lr_inc/var_tau);
-
-    // cache & panel
-    state.cache = {GWP, EP_mid, mu_post, sigma_post, lr_inc, paid, outstanding, ev, ch, ads};
-    $("midInfo").innerText = `GWP=${fmt(GWP)} | EP(50%)=${fmt(EP_mid)} | incurred LR=${(lr_inc*100).toFixed(1)}% → Panel 2'den "ULR nasıl gelişir?" seçin.`;
-    $("midPanel").innerText = `Ödenen=${fmt(paid)} | Muallak=${fmt(outstanding)} | Posterior σ=${sigma_post.toFixed(3)}`;
-    $("reserveBtn").disabled=false; $("drawEvent").disabled=true;
-
-    // tablo: ilk doldurmalar
-    ensureRowForYear(state.year);
-    setCell(1, ev.name);
-    setCell(2, fmt(GWP));
-    setCell(3, (lr_inc*100).toFixed(1)+'%');
-    setCell(6, fmt(paid));
-    setCell(7, fmt(outstanding));
-  }
-
-  // Rezerv tercihleri: ULR nasıl gelişir? (yüzdelik)
-  $("reserveBtn").addEventListener("click", ()=>{
-    if(!state.cache){alert("Önce olayı çekin.");return;}
-    showModal(`
-      <div>
-        <b>ULR nasıl gelişir?</b> <span class="muted">(rezerv politikası)</span>
-        <div class="choices" style="margin-top:8px">
-          <button class="btn" data-d="-0.20">Daha az (~−%20) — agresif</button>
-          <button class="btn" data-d="0.00">Benzer (0) — nötr</button>
-          <button class="btn" data-d="0.20">Daha fazla (~+%20) — konservatif</button>
-        </div>
-      </div>
-    `);
-    document.querySelectorAll('.choices .btn').forEach(b=>{
-      b.onclick=()=>{ closeModal(); applyReserve(parseFloat(b.dataset.d)); };
-    });
-  });
-
-  function applyReserve(delta){
-    const k = state.cache; if(!k) return;
-    const lr_star = clamp(k.mu_post * (1+delta), CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-    const chosenReserve = Math.max(0, k.GWP*lr_star - (k.paid+k.outstanding));
-    state.cache = {...k, delta, lr_star, chosenReserve};
-
-    $("endPanel").innerText = `Seçilen LR*=${(lr_star*100).toFixed(1)}% | Rezerv=${fmt(chosenReserve)} → Panel 3'ten temettü seçin.`;
-    $("divBtn").disabled=false; $("reserveBtn").disabled=true;
-
-    setCell(5, (lr_star*100).toFixed(1)+'%');   // LR*
-    setCell(8, fmt(chosenReserve));             // Seçilen Rezerv
-  }
-
-  // Temettü
-  $("divBtn").addEventListener("click", ()=>{
-    const k = state.cache; if(!k){alert("Önce rezerv seçin.");return;}
-    yearEndDialog();
-  });
-
-  function yearEndDialog(){
-    const k = state.cache; if(!k) return;
-
-    const lr_real = rngTNormal(k.mu_post, k.sigma_post, CONFIG.lrBounds[0], CONFIG.lrBounds[1]);
-    const realClaims = k.GWP * lr_real;
-    const neededReserve = Math.max(0, realClaims - k.paid);
-    const finalReserve  = Math.max(k.chosenReserve, neededReserve);
-
-    const comm = k.GWP * commPct(k.ch);
-    const adsCost = k.GWP * adsPct(k.ads);
-
-    const preTax = k.GWP - (k.paid + finalReserve) - comm - adsCost;
-    const tax = preTax>0 ? preTax*CONFIG.taxRate : 0;
-    const afterTax = preTax - tax;
-
-    state.cache = {...k, lr_real, realClaims, neededReserve, finalReserve, comm, adsCost, preTax, tax, afterTax};
-
-    // tablo: yıl sonu kısımları
-    setCell(4, (lr_real*100).toFixed(1)+'%');
-    setCell(9, fmt(finalReserve));
-    setCell(10, fmt(comm));
-    setCell(11, fmt(adsCost));
-    setCell(12, (preTax>=0?'<span class="ok">':'<span class="bad">')+fmt(preTax)+'</span>');
-    setCell(13, fmt(tax));
-    setCell(14, (afterTax>=0?'<span class="ok">':'<span class="bad">')+fmt(afterTax)+'</span>');
-
-    if(afterTax<=0){
-      showModal(`<div><b>Vergi sonrası net kâr: ${fmt(afterTax)}</b><br/><span class="muted">❌ Kâr yok; temettü dağıtılamaz.</span><div class="hr"></div><button class="btn primary" id="okNoDiv">Tamam</button></div>`);
-      $("okNoDiv").onclick=()=>{ closeModal(); closeYear(0); };
-    }else{
-      showModal(`
-        <div>
-          <b>Vergi sonrası net kâr: ${fmt(afterTax)}</b><br/><span class="muted">Temettü ödemek ister misiniz?</span>
-          <div class="choices">
-            <button class="btn" data-div="0">%0</button>
-            <button class="btn" data-div="0.5">%50</button>
-            <button class="btn" data-div="0.75">%75</button>
-            <button class="btn" data-div="1">%100</button>
-          </div>
-        </div>
-      `);
-      document.querySelectorAll('.choices .btn').forEach(b=>{
-        b.onclick=()=>{ const rate=parseFloat(b.dataset.div); closeModal(); closeYear(rate); };
-      });
-    }
-  }
-
-  function regulationCheck(newCap){
-    if(newCap<50){ if(!state.warned){state.warned=true; return {fail:false,warn:true};} return {fail:true,warn:false}; }
-    return {fail:false,warn:false};
-  }
-
-  function closeYear(divRate){
-    const k = state.cache; if(!k) return;
-
-    const dividend   = k.afterTax>0 ? k.afterTax*divRate : 0;
-    const yearEndCap = state.capital + k.afterTax - dividend;
-
-    const reg = regulationCheck(yearEndCap);
-    if(reg.warn) alert("⚠️ Sermaye 50'nin altına düştü: Uyarı! Bir kez daha olursa iflas.");
-    const fail = reg.fail;
-
-    state.cumDiv += dividend;
-    state.capital = yearEndCap;
-
-    // CEO paneli ANINDA
-    renderCEO();
-
-    // tablo: kalan alanlar
-    setCell(15, fmt(dividend));
-    setCell(16, fmt(yearEndCap));
-    setCell(17, band(yearEndCap));
-
-    if(fail){
-      showModal(`<div><b>İflas tetiklendi.</b><div class="hr"></div><button class="btn" id="okFail">Tamam</button></div>`);
-      $("okFail").onclick=()=>closeModal();
-    }else if(state.year>=5){
-      const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
-      showModal(`<div><b>5 yıl tamamlandı.</b><div class="mono">Mutluluk Oranı: ${(ratio*100).toFixed(1)}% | Skor: ${state.score}</div><div class="hr"></div><button class="btn" id="okEnd">Tamam</button></div>`);
-      $("okEnd").onclick=()=>closeModal();
-    }
-
-    // yeni yıl
-    state.year += 1;
-    state.event=null; state.cache=null;
-    $("eventBadge").innerText="Olay: —"; $("midInfo").innerText="";
-    $("reserveBtn").disabled=true; $("divBtn").disabled=true; $("drawEvent").disabled=false;
-  }
-})();</script>
+// Reset
+$("resetGame").onclick=()=>{location.reload();};
+</script>
 </body>
 </html>
