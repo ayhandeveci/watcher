@@ -7,8 +7,9 @@
 <style>
   :root{--bg:#0f172a;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--bad:#ef4444}
   body{margin:0;background:#0f172a;color:var(--ink);font-family:Inter,system-ui}
-  header{padding:12px;border-bottom:1px solid #1f2937}
-  h1{font-size:18px;margin:0}
+  header{padding:12px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:10px}
+  h1{font-size:18px;margin:0;flex:1}
+  .infoBtn{padding:6px 10px;border-radius:8px;border:1px solid #334155;background:#0b1023;color:#fff;cursor:pointer}
   .wrap{max-width:1280px;margin:auto;padding:14px;display:grid;gap:14px}
   .cols-4{display:grid;grid-template-columns:1.1fr 1fr 1fr 0.9fr;gap:14px}
   .card{background:var(--card);border:1px solid #1f2937;border-radius:10px;padding:12px}
@@ -24,7 +25,7 @@
   .face{font-size:40px}
   .ok{color:var(--ok)}.bad{color:var(--bad)}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50}
-  .modal .box{background:#111827;padding:16px;border-radius:12px;width:90%;max-width:600px}
+  .modal .box{background:#111827;padding:16px;border-radius:12px;width:90%;max-width:680px}
   .choices{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .choices .btn{flex:1}
   .spinner{width:28px;height:28px;border:3px solid #334155;border-top-color:#38bdf8;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;margin-right:8px}
@@ -32,7 +33,10 @@
 </style>
 </head>
 <body>
-<header><h1>🕹️ Watcher — Bayes Rezerv Oyunu</h1></header>
+<header>
+  <h1>🕹️ Bayes Rezerv Oyunu</h1>
+  <button id="flowBtn" class="infoBtn">ℹ️ Akış</button>
+</header>
 
 <div class="wrap">
   <section class="cols-4">
@@ -127,11 +131,11 @@ function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,s
 /* ---------- config ---------- */
 const CONFIG={
   capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedShare:0.5,
-  // GWP çarpanları (başlangıç primi artık 90 sabit değil, seçimlere göre ölçeklenir)
+  // GWP çarpanları (başlangıç primi seçimlere göre ölçeklenir)
   fPrice:v=>v==="cheap"?1.30:v==="exp"?0.85:1.10,
   fUW:v=>v==="loose"?1.10:v==="strict"?0.90:1.00,
   fChannel:v=>v==="agent"?1.10:v==="digital"?0.95:1.00,
-  fAds:l=>({low:0,mid:1,high:2}[l], 1 + 0.08*({low:0,mid:1,high:2}[l]) - 0.02*({low:0,mid:1,high:2}[l])**2),
+  fAds:l=>{const m={low:0,mid:1,high:2}[l]; return 1+0.08*m-0.02*m*m;},
   // Masraf oranları parametreye bağlı
   commPct:ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12,
   adsPct:l=>l==="low"?0.01:l==="high"?0.06:0.03
@@ -143,7 +147,7 @@ const state={
   cache:null, currentRow:null, fired:false, bankrupt:false
 };
 
-/* ---------- events (olasılıkları DEĞİŞMEDİ: eşit seçiliyor) ---------- */
+/* ---------- events (olasılıkları değiştirmiyoruz) ---------- */
 const EVENTS=[
  {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.60,volMul:1.00,blurb:"Her şey normal."},
  {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,volMul:1.08,blurb:"Agresif fiyat rekabeti."},
@@ -161,7 +165,7 @@ function portfolioRiskScore(price,uw,channel,ads){
   return Math.max(-1,Math.min(1,s/1.5));
 }
 
-/* ---------- table utils (SATIR ADIM ADIM GÜNCELLER) ---------- */
+/* ---------- table utils ---------- */
 function ensureRowForYear(y){
   const tb = document.querySelector("#yearsTbl tbody");
   let tr = tb.querySelector(`tr[data-year="${y}"]`);
@@ -191,11 +195,24 @@ function updateCEO(){
 }
 updateCEO();
 
+/* ---------- flow popup ---------- */
+$("flowBtn").onclick=()=>showModal(`
+  <h3>Oyun Akışı</h3>
+  <ol class="mono">
+    <li>Yıl başında portföy parametrelerini seç.</li>
+    <li>“Olayı Çek” → 5 sn. zar animasyonu → yılın olayı, incLR ve yıl ortası ödemeler görünür.</li>
+    <li>“ULR nasıl gelişir?” → <b>incLR’nin %20 altı</b> / <b>incLR</b> / <b>incLR’nin %20 fazlası</b> arasından bir hedef seç; seçtiğin LR*’a göre <b>rezerv</b> ayrılır.</li>
+    <li>Yıl sonu gerçekleşen ULR (realLR) <i>rassal</i> çekilir, ama portföy riskine göre <i>eğimlidir</i>. Temettü sorulmadan önce tabloda <b>VÖ</b> ve <b>VS</b> görünür.</li>
+    <li>Temettü (%0/%50/%75/%100) seç; sermaye güncellenir. 5 yıl tamamlarsan oyunu <b>kazanırsın</b>. Sermaye &lt; 50 ise iflas; 2 yıldan sonra (kümülatif temettü / sermaye) &lt; %10 olursa CEO görevden alınır.</li>
+  </ol>
+  <div class="choices"><button class="btn" onclick="closeModal()">Tamam</button></div>
+`);
+
 /* ---------- buttons ---------- */
 $("resetGame").onclick=()=>{ location.reload(); };
 
 $("startYear").onclick=()=>{
-  if(state.bankrupt || state.fired) return; // oyun bitmişse engelle
+  if(state.bankrupt || state.fired) return;
   $("drawEvent").disabled=false;
   $("reserveBtn").disabled=true;
   $("divBtn").disabled=true;
@@ -205,21 +222,18 @@ $("startYear").onclick=()=>{
   $("endPanel").textContent="";
   state.cache=null;
   ensureRowForYear(state.year);
-  for(let i=1;i<=15;i++) setCell(i,"—"); // satırı temizle
+  for(let i=1;i<=15;i++) setCell(i,"—");
 };
 
 $("drawEvent").onclick=()=>{
   if(state.bankrupt || state.fired) return;
-  // 5 saniye "zar atılıyor" popup
   showModal(`<div><span class="spinner"></span> 🎲 Zar atılıyor...</div>`);
   setTimeout(()=>{
     closeModal();
 
-    // olayı seç
     const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
     $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
 
-    // GWP: seçimlere göre ölçekli (artık sabit 90 değil)
     const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
     const gwpBase = CONFIG.baseGwp;
     const GWP = gwpBase
@@ -229,43 +243,43 @@ $("drawEvent").onclick=()=>{
       * CONFIG.fAds(ads)
       * ev.volMul;
 
-    // incLR ve yıl ortası bileşenler
     const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
     const earned=GWP*CONFIG.earnedShare;
     const incurred=earned*incLR;
     const paid=incurred*ev.paidShare;
     const outst=incurred-paid;
 
-    // Komisyon ve PR giderleri (parametreye bağlı)
     const comm=GWP*CONFIG.commPct(ch);
     const pr=GWP*CONFIG.adsPct(ads);
 
-    // cache
     state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma, price,uw,ch,ads};
 
-    // Panel & tablo GÜNCELLEME (adım adım)
     $("midInfo").innerText=`incLR=%${fmt(incLR*100)} | Ödenen=${fmt(paid)} | Muallak=${fmt(outst)}`;
     $("reserveBtn").disabled=false;
 
     ensureRowForYear(state.year);
-    setCell(1, ev.name);             // Olay
-    setCell(2, fmt(GWP));            // GWP
-    setCell(3, "%"+fmt(incLR*100));  // incLR
-    setCell(6, fmt(paid));           // Ödenen
-    setCell(7, fmt(outst));          // Muallak
-    setCell(9, fmt(comm));           // Komisyon
-    setCell(10, fmt(pr));            // PR
+    setCell(1, ev.name);
+    setCell(2, fmt(GWP));
+    setCell(3, "%"+fmt(incLR*100));
+    setCell(6, fmt(paid));
+    setCell(7, fmt(outst));
+    setCell(9, fmt(comm));
+    setCell(10, fmt(pr));
   }, 5000);
 };
 
 $("reserveBtn").onclick=()=>{
   const k=state.cache; if(!k) return;
+  // Şıklar: inc*0.8, inc*1.0, inc*1.2  (bounds içinde kırp)
+  const a = Math.max(CONFIG.lrBounds[0], Math.min(CONFIG.lrBounds[1], k.incLR*0.8));
+  const b = Math.max(CONFIG.lrBounds[0], Math.min(CONFIG.lrBounds[1], k.incLR));
+  const c = Math.max(CONFIG.lrBounds[0], Math.min(CONFIG.lrBounds[1], k.incLR*1.2));
   showModal(`
     <h3>ULR nasıl gelişir?</h3>
     <div class="choices">
-      <button class="btn" onclick="chooseReserve(0.60)">%60</button>
-      <button class="btn" onclick="chooseReserve(0.75)">%75</button>
-      <button class="btn" onclick="chooseReserve(0.90)">%90</button>
+      <button class="btn" onclick="chooseReserve(${a})">%${fmt(a*100)} (incLR - %20)</button>
+      <button class="btn" onclick="chooseReserve(${b})">%${fmt(b*100)} (incLR)</button>
+      <button class="btn" onclick="chooseReserve(${c})">%${fmt(c*100)} (incLR + %20)</button>
     </div>
   `);
 };
@@ -280,28 +294,26 @@ window.chooseReserve=(lrStar)=>{
   $("divBtn").disabled=false;
   $("midPanel").innerText=`Seçilen ULR hedefi=%${fmt(lrStar*100)}, Rezerv=${fmt(k.resv)}`;
 
-  // tabloyu ADIM ADIM güncelle
   ensureRowForYear(state.year);
-  setCell(5, "%"+fmt(lrStar*100)); // LR*
-  setCell(8, fmt(k.resv));         // Rezerv
+  setCell(5, "%"+fmt(lrStar*100));
+  setCell(8, fmt(k.resv));
 };
 
 $("divBtn").onclick=()=>{
   const k=state.cache; if(!k) return;
   if(state.bankrupt || state.fired) return;
 
-  // YIL SONU: realLR — portföy riskine GÖRE EĞİMLİ ve RASSAL
+  // YIL SONU: realLR — portföy riskine göre eğimli ve rassal
   const rScore=portfolioRiskScore(k.price,k.uw,k.ch,k.ads);
-  // etkileri belirgin (±10 puan mean kayması, sigma x2'ye kadar)
   const muAdj  = k.mu_post + 0.10 * rScore;
   const sigAdj = k.sigma_post * (1 + 1.0*Math.abs(rScore));
 
   const realLR=rngTNormal(muAdj,sigAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
   k.realLR=realLR;
 
-  // Rezerv gerçekleşme farkı (tam P&L etkili)
+  // Rezerv farkı P&L etkisi
   const realNeed=k.GWP*realLR-(k.paid+k.outst);
-  const delta=realNeed-k.resv;           // >0 güçlendirme, <0 serbest bırakma
+  const delta=realNeed-k.resv;
   const pnlResv=delta;
 
   // Kâr — zarar
@@ -309,14 +321,14 @@ $("divBtn").onclick=()=>{
   const tax=VO>0 ? VO*CONFIG.tax : 0;
   const VS=VO-tax;
 
-  // tabloya realLR ve P&L ön hesapları yaz (temettü sorulmadan önce)
+  // Temettü kararından ÖNCE tabloda VÖ ve VS'yi göster
   ensureRowForYear(state.year);
-  setCell(4, "%"+fmt(realLR*100)); // realLR
-  setCell(11, (VO>=0?'<span class="ok">':'<span class="bad">')+fmt(VO)+'</span>'); // VÖ
-  setCell(12, fmt(tax));            // Vergi
-  setCell(13, (VS>=0?'<span class="ok">':'<span class="bad">')+fmt(VS)+'</span>');  // VS
+  setCell(4, "%"+fmt(realLR*100));
+  setCell(11, (VO>=0?'<span class="ok">':'<span class="bad">')+fmt(VO)+'</span>');
+  setCell(12, fmt(tax));
+  setCell(13, (VS>=0?'<span class="ok">':'<span class="bad">')+fmt(VS)+'</span>');
 
-  // Temettü modal
+  // Temettü modalı
   showModal(`
     <h3>Temettü Seç</h3>
     <div class="choices">
@@ -327,26 +339,22 @@ $("divBtn").onclick=()=>{
     </div>
   `);
 
-  // payDiv içinde tabloyu TAMAMLARIZ
   window.payDiv=(f)=>{
     closeModal();
     const div = VS>0 ? VS*f : 0;
     state.cumDiv += div;
     state.capital += VS - div;
 
-    // tabloyu tamamla
-    setCell(14, fmt(div));               // Temettü
-    setCell(15, fmt(state.capital));     // Sermaye
+    setCell(14, fmt(div));
+    setCell(15, fmt(state.capital));
 
-    // CEO paneli hemen güncellensin
     updateCEO();
 
-    // Yılı kapat
     $("drawEvent").disabled=true;
     $("reserveBtn").disabled=true;
     $("divBtn").disabled=true;
 
-    // 5 YIL TAMAMLAMA KAZANÇ KOŞULU
+    // 5 YIL TAMAMLAMA = KAZANÇ
     if(!state.bankrupt && !state.fired && state.year>=5){
       const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
       showModal(`<h3>🎉 5 yılı tamamladın — Oyunu Kazandın!</h3>
