@@ -125,20 +125,30 @@ function rngNormal(mu,sigma){let u=0,v=0;while(u===0)u=Math.random();while(v===0
 function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,sigma);if(x>=a&&x<=b)return x;}return Math.max(a,Math.min(b,mu));}
 
 /* ---------- config ---------- */
-const CONFIG={capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedShare:0.5};
+const CONFIG={
+  capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedShare:0.5,
+  // GWP çarpanları (başlangıç primi artık 90 sabit değil, seçimlere göre ölçeklenir)
+  fPrice:v=>v==="cheap"?1.30:v==="exp"?0.85:1.10,
+  fUW:v=>v==="loose"?1.10:v==="strict"?0.90:1.00,
+  fChannel:v=>v==="agent"?1.10:v==="digital"?0.95:1.00,
+  fAds:l=>({low:0,mid:1,high:2}[l], 1 + 0.08*({low:0,mid:1,high:2}[l]) - 0.02*({low:0,mid:1,high:2}[l])**2),
+  // Masraf oranları parametreye bağlı
+  commPct:ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12,
+  adsPct:l=>l==="low"?0.01:l==="high"?0.06:0.03
+};
 
 /* ---------- state ---------- */
 const state={
   year:1, capital:CONFIG.capital0, cumDiv:0, warned:false,
-  cache:null, currentRow:null
+  cache:null, currentRow:null, fired:false, bankrupt:false
 };
 
 /* ---------- events (olasılıkları DEĞİŞMEDİ: eşit seçiliyor) ---------- */
 const EVENTS=[
- {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.60,blurb:"Her şey normal."},
- {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,blurb:"Agresif fiyat rekabeti."},
- {key:"cat",name:"CAT",mu:0.80,sigma:0.08,paidShare:0.70,blurb:"Felaket yılı, büyük hasar."},
- {key:"pr",name:"PR Krizi",mu:0.66,sigma:0.06,paidShare:0.58,blurb:"İmaj kaybı, masraflar artar."}
+ {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.60,volMul:1.00,blurb:"Her şey normal."},
+ {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,volMul:1.08,blurb:"Agresif fiyat rekabeti."},
+ {key:"cat",name:"CAT",mu:0.80,sigma:0.08,paidShare:0.70,volMul:1.00,blurb:"Felaket yılı, büyük hasar."},
+ {key:"pr",name:"PR Krizi",mu:0.66,sigma:0.06,paidShare:0.58,volMul:0.95,blurb:"İmaj kaybı, masraflar artar."}
 ];
 
 /* ---------- portfolio risk score (realLR'ye eğim verir) ---------- */
@@ -174,8 +184,8 @@ function setCell(idx, html){
 function updateCEO(){
   const ratio=state.capital>0 ? state.cumDiv/state.capital : 0;
   $("ceoStats").innerText=`Sermaye=${fmt(state.capital)} | Kümülatif Temettü=${fmt(state.cumDiv)} | Oran=%${fmt(ratio*100)}`;
-  if(state.capital<50){$("ceoFace").innerText="💀";$("statusBox").innerText="İflas!";return;}
-  if(ratio<0.1 && state.year>2){$("ceoFace").innerText="😡";$("statusBox").innerText="CEO görevden alındı!";return;}
+  if(state.capital<50){$("ceoFace").innerText="💀";$("statusBox").innerText="İflas!"; state.bankrupt=true; return;}
+  if(ratio<0.1 && state.year>2){$("ceoFace").innerText="😡";$("statusBox").innerText="CEO görevden alındı!"; state.fired=true; return;}
   $("ceoFace").innerText= ratio>=0.2?"😃":"🙂";
   $("statusBox").innerText="Oyuna devam...";
 }
@@ -185,6 +195,7 @@ updateCEO();
 $("resetGame").onclick=()=>{ location.reload(); };
 
 $("startYear").onclick=()=>{
+  if(state.bankrupt || state.fired) return; // oyun bitmişse engelle
   $("drawEvent").disabled=false;
   $("reserveBtn").disabled=true;
   $("divBtn").disabled=true;
@@ -198,6 +209,7 @@ $("startYear").onclick=()=>{
 };
 
 $("drawEvent").onclick=()=>{
+  if(state.bankrupt || state.fired) return;
   // 5 saniye "zar atılıyor" popup
   showModal(`<div><span class="spinner"></span> 🎲 Zar atılıyor...</div>`);
   setTimeout(()=>{
@@ -207,8 +219,15 @@ $("drawEvent").onclick=()=>{
     const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)];
     $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
 
-    // GWP sabit (tasarıma dokunmadan)
-    const GWP=CONFIG.baseGwp;
+    // GWP: seçimlere göre ölçekli (artık sabit 90 değil)
+    const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
+    const gwpBase = CONFIG.baseGwp;
+    const GWP = gwpBase
+      * CONFIG.fPrice(price)
+      * CONFIG.fUW(uw)
+      * CONFIG.fChannel(ch)
+      * CONFIG.fAds(ads)
+      * ev.volMul;
 
     // incLR ve yıl ortası bileşenler
     const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
@@ -217,15 +236,12 @@ $("drawEvent").onclick=()=>{
     const paid=incurred*ev.paidShare;
     const outst=incurred-paid;
 
-    // Komisyon ve PR giderleri (olay seçildiğinde yaz)
-    const comm=GWP*0.12;
-    const pr=GWP*(
-      document.getElementById("ads").value==="high" ? 0.06 :
-      document.getElementById("ads").value==="low"  ? 0.01 : 0.03
-    );
+    // Komisyon ve PR giderleri (parametreye bağlı)
+    const comm=GWP*CONFIG.commPct(ch);
+    const pr=GWP*CONFIG.adsPct(ads);
 
     // cache
-    state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma};
+    state.cache={ev,GWP,incLR,paid,outst,comm,pr,mu_post:ev.mu,sigma_post:ev.sigma, price,uw,ch,ads};
 
     // Panel & tablo GÜNCELLEME (adım adım)
     $("midInfo").innerText=`incLR=%${fmt(incLR*100)} | Ödenen=${fmt(paid)} | Muallak=${fmt(outst)}`;
@@ -272,12 +288,11 @@ window.chooseReserve=(lrStar)=>{
 
 $("divBtn").onclick=()=>{
   const k=state.cache; if(!k) return;
+  if(state.bankrupt || state.fired) return;
 
   // YIL SONU: realLR — portföy riskine GÖRE EĞİMLİ ve RASSAL
-  const rScore=portfolioRiskScore(
-    $("price").value, $("uw").value, $("channel").value, $("ads").value
-  );
-  // etkileri belirgin tut (±10 puan mean kayması, sigma x2'ye kadar)
+  const rScore=portfolioRiskScore(k.price,k.uw,k.ch,k.ads);
+  // etkileri belirgin (±10 puan mean kayması, sigma x2'ye kadar)
   const muAdj  = k.mu_post + 0.10 * rScore;
   const sigAdj = k.sigma_post * (1 + 1.0*Math.abs(rScore));
 
@@ -330,6 +345,14 @@ $("divBtn").onclick=()=>{
     $("drawEvent").disabled=true;
     $("reserveBtn").disabled=true;
     $("divBtn").disabled=true;
+
+    // 5 YIL TAMAMLAMA KAZANÇ KOŞULU
+    if(!state.bankrupt && !state.fired && state.year>=5){
+      const ratio = state.capital>0 ? state.cumDiv/state.capital : 0;
+      showModal(`<h3>🎉 5 yılı tamamladın — Oyunu Kazandın!</h3>
+        <div class="mono">Sermaye: ${fmt(state.capital)} | Kümülatif Temettü: ${fmt(state.cumDiv)} | Oran: %${fmt(ratio*100)}</div>
+        <div class="choices"><button class="btn" onclick="closeModal()">Tamam</button></div>`);
+    }
 
     state.year++;
   };
