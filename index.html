@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Watcher — Bayes Rezerv Oyunu</title>
+<title>Bayes Rezerv Oyunu</title>
 <style>
   :root{--bg:#0f172a;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--bad:#ef4444}
   body{margin:0;background:#0f172a;color:var(--ink);font-family:Inter,system-ui}
@@ -131,12 +131,12 @@ function rngTNormal(mu,sigma,a,b){for(let i=0;i<2000;i++){const x=rngNormal(mu,s
 /* ---------- config ---------- */
 const CONFIG={
   capital0:100, tax:0.20, baseGwp:90, lrBounds:[0.35,1.4], earnedShare:0.5,
-  // GWP çarpanları (başlangıç primi seçimlere göre ölçeklenir)
+  // GWP çarpanları
   fPrice:v=>v==="cheap"?1.30:v==="exp"?0.85:1.10,
   fUW:v=>v==="loose"?1.10:v==="strict"?0.90:1.00,
   fChannel:v=>v==="agent"?1.10:v==="digital"?0.95:1.00,
   fAds:l=>{const m={low:0,mid:1,high:2}[l]; return 1+0.08*m-0.02*m*m;},
-  // Masraf oranları parametreye bağlı
+  // Masraf oranları
   commPct:ch=>ch==="agent"?0.18:ch==="digital"?0.05:0.12,
   adsPct:l=>l==="low"?0.01:l==="high"?0.06:0.03
 };
@@ -147,7 +147,7 @@ const state={
   cache:null, currentRow:null, fired:false, bankrupt:false
 };
 
-/* ---------- events (olasılıkları değiştirmiyoruz) ---------- */
+/* ---------- events ---------- */
 const EVENTS=[
  {key:"normal",name:"Normal",mu:0.65,sigma:0.05,paidShare:0.60,volMul:1.00,blurb:"Her şey normal."},
  {key:"pricewar",name:"Fiyat Savaşı",mu:0.74,sigma:0.06,paidShare:0.52,volMul:1.08,blurb:"Agresif fiyat rekabeti."},
@@ -155,7 +155,7 @@ const EVENTS=[
  {key:"pr",name:"PR Krizi",mu:0.66,sigma:0.06,paidShare:0.58,volMul:0.95,blurb:"İmaj kaybı, masraflar artar."}
 ];
 
-/* ---------- portfolio risk score (realLR'ye eğim verir) ---------- */
+/* ---------- portfolio risk score ---------- */
 function portfolioRiskScore(price,uw,channel,ads){
   let s=0;
   if(price==="cheap")s+=0.6; else if(price==="exp")s-=0.4;
@@ -201,9 +201,9 @@ $("flowBtn").onclick=()=>showModal(`
   <ol class="mono">
     <li>Yıl başında portföy parametrelerini seç.</li>
     <li>“Olayı Çek” → 5 sn. zar animasyonu → yılın olayı, incLR ve yıl ortası ödemeler görünür.</li>
-    <li>“ULR nasıl gelişir?” → <b>incLR’nin %20 altı</b> / <b>incLR</b> / <b>incLR’nin %20 fazlası</b> arasından bir hedef seç; seçtiğin LR*’a göre <b>rezerv</b> ayrılır.</li>
-    <li>Yıl sonu gerçekleşen ULR (realLR) <i>rassal</i> çekilir, ama portföy riskine göre <i>eğimlidir</i>. Temettü sorulmadan önce tabloda <b>VÖ</b> ve <b>VS</b> görünür.</li>
-    <li>Temettü (%0/%50/%75/%100) seç; sermaye güncellenir. 5 yıl tamamlarsan oyunu <b>kazanırsın</b>. Sermaye &lt; 50 ise iflas; 2 yıldan sonra (kümülatif temettü / sermaye) &lt; %10 olursa CEO görevden alınır.</li>
+    <li>“ULR nasıl gelişir?” → <b>incLR’nin %20 altı</b> / <b>incLR</b> / <b>incLR’nin %20 fazlası</b> arasından hedef seç; rezerv ayrılır.</li>
+    <li>Seçimin ardından <b>realLR</b> rastgele (riskine eğimli) çekilir; <b>VÖ</b> ve <b>VS</b> tabloda hemen görünür.</li>
+    <li>Temettü seç (%0/%50/%75/%100). 5 yıl tamamlarsan oyunu <b>kazanırsın</b>. Sermaye &lt; 50 ise iflas; 2 yıldan sonra oran &lt; %10 ise CEO görevden alınır.</li>
   </ol>
   <div class="choices"><button class="btn" onclick="closeModal()">Tamam</button></div>
 `);
@@ -235,13 +235,8 @@ $("drawEvent").onclick=()=>{
     $("eventBadge").innerText=`Olay: ${ev.name} — ${ev.blurb}`;
 
     const price=$("price").value, uw=$("uw").value, ch=$("channel").value, ads=$("ads").value;
-    const gwpBase = CONFIG.baseGwp;
-    const GWP = gwpBase
-      * CONFIG.fPrice(price)
-      * CONFIG.fUW(uw)
-      * CONFIG.fChannel(ch)
-      * CONFIG.fAds(ads)
-      * ev.volMul;
+    const GWP = CONFIG.baseGwp
+      * CONFIG.fPrice(price) * CONFIG.fUW(uw) * CONFIG.fChannel(ch) * CONFIG.fAds(ads) * ev.volMul;
 
     const incLR=rngTNormal(ev.mu,ev.sigma,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
     const earned=GWP*CONFIG.earnedShare;
@@ -287,48 +282,44 @@ $("reserveBtn").onclick=()=>{
 window.chooseReserve=(lrStar)=>{
   closeModal();
   const k=state.cache; if(!k) return;
+
+  // Rezerv tutarı (LR* üzerinden)
   const need=k.GWP*lrStar-(k.paid+k.outst);
   k.lrStar=lrStar;
   k.resv=Math.max(0,need);
 
-  $("divBtn").disabled=false;
-  $("midPanel").innerText=`Seçilen ULR hedefi=%${fmt(lrStar*100)}, Rezerv=${fmt(k.resv)}`;
+  // ====== REAL LR ŞİMDİ ÇEKİLİR (rezervden HEMEN SONRA GÖRÜNSÜN) ======
+  const rScore=portfolioRiskScore(k.price,k.uw,k.ch,k.ads);
+  const muAdj  = k.mu_post + 0.10 * rScore;
+  const sigAdj = k.sigma_post * (1 + 1.0*Math.abs(rScore));
+  k.realLR = rngTNormal(muAdj,sigAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
 
+  // P&L öğeleri (VÖ/VS temettüden ÖNCE tabloda)
+  const realNeed   = k.GWP*k.realLR-(k.paid+k.outst);
+  const pnlResv    = realNeed - k.resv;
+  const VO         = k.GWP-(k.paid+k.outst+k.resv)-k.comm-k.pr+pnlResv;
+  const tax        = VO>0 ? VO*CONFIG.tax : 0;
+  const VS         = VO - tax;
+  k.VO = VO; k.tax = tax; k.VS = VS; // temettü adımında aynen kullanacağız
+
+  $("divBtn").disabled=false;
+  $("midPanel").innerText=`Seçilen ULR hedefi=%${fmt(lrStar*100)}, Rezerv=${fmt(k.resv)}\nrealLR=%${fmt(k.realLR*100)} | VÖ=${fmt(VO)} | VS=${fmt(VS)}`;
+
+  // tabloyu güncelle
   ensureRowForYear(state.year);
-  setCell(5, "%"+fmt(lrStar*100));
-  setCell(8, fmt(k.resv));
+  setCell(5, "%"+fmt(lrStar*100));     // LR*
+  setCell(8, fmt(k.resv));             // Rezerv
+  setCell(4, "%"+fmt(k.realLR*100));   // realLR (hemen görünsün)
+  setCell(11, (VO>=0?'<span class="ok">':'<span class="bad">')+fmt(VO)+'</span>'); // VÖ
+  setCell(12, fmt(tax));               // Vergi
+  setCell(13, (VS>=0?'<span class="ok">':'<span class="bad">')+fmt(VS)+'</span>');  // VS
 };
 
 $("divBtn").onclick=()=>{
   const k=state.cache; if(!k) return;
   if(state.bankrupt || state.fired) return;
 
-  // YIL SONU: realLR — portföy riskine göre eğimli ve rassal
-  const rScore=portfolioRiskScore(k.price,k.uw,k.ch,k.ads);
-  const muAdj  = k.mu_post + 0.10 * rScore;
-  const sigAdj = k.sigma_post * (1 + 1.0*Math.abs(rScore));
-
-  const realLR=rngTNormal(muAdj,sigAdj,CONFIG.lrBounds[0],CONFIG.lrBounds[1]);
-  k.realLR=realLR;
-
-  // Rezerv farkı P&L etkisi
-  const realNeed=k.GWP*realLR-(k.paid+k.outst);
-  const delta=realNeed-k.resv;
-  const pnlResv=delta;
-
-  // Kâr — zarar
-  const VO=k.GWP-(k.paid+k.outst+k.resv)-k.comm-k.pr+pnlResv;
-  const tax=VO>0 ? VO*CONFIG.tax : 0;
-  const VS=VO-tax;
-
-  // Temettü kararından ÖNCE tabloda VÖ ve VS'yi göster
-  ensureRowForYear(state.year);
-  setCell(4, "%"+fmt(realLR*100));
-  setCell(11, (VO>=0?'<span class="ok">':'<span class="bad">')+fmt(VO)+'</span>');
-  setCell(12, fmt(tax));
-  setCell(13, (VS>=0?'<span class="ok">':'<span class="bad">')+fmt(VS)+'</span>');
-
-  // Temettü modalı
+  // Temettü modalı (VO/VS zaten hesaplandı ve tabloda)
   showModal(`
     <h3>Temettü Seç</h3>
     <div class="choices">
@@ -341,9 +332,9 @@ $("divBtn").onclick=()=>{
 
   window.payDiv=(f)=>{
     closeModal();
-    const div = VS>0 ? VS*f : 0;
+    const div = k.VS>0 ? k.VS*f : 0;
     state.cumDiv += div;
-    state.capital += VS - div;
+    state.capital += k.VS - div;
 
     setCell(14, fmt(div));
     setCell(15, fmt(state.capital));
